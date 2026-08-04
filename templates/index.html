@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Assistant</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; }
+        .container { max-width: 800px; margin: 30px auto; padding: 20px; }
+        h1 { text-align: center; color: #333; margin-bottom: 20px; }
+        .chat-box { background: white; border-radius: 12px; padding: 20px;
+                    min-height: 400px; max-height: 500px; overflow-y: auto;
+                    margin-bottom: 20px; border: 1px solid #ddd; }
+        .message { margin: 10px 0; padding: 12px 16px; border-radius: 8px; }
+        .user { background: #007bff; color: white; margin-left: 20%; }
+        .assistant { background: #f1f1f1; color: #333; margin-right: 20%; }
+        .category { font-size: 11px; color: #888; margin-top: 4px; }
+        .input-row { display: flex; gap: 10px; }
+        input { flex: 1; padding: 12px; font-size: 16px;
+                border: 1px solid #ddd; border-radius: 8px; }
+        button { padding: 12px 20px; background: #007bff; color: white;
+                 border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #0056b3; }
+        #clear-btn { background: #dc3545; }
+        #clear-btn:hover { background: #c82333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 AI Assistant</h1>
+        <div class="chat-box" id="chat-box">
+            <div class="message assistant">
+                Hello! I am your AI Assistant. Ask me anything about
+                general topics, math, science, or coding!
+            </div>
+        </div>
+        <div class="input-row">
+            <input type="text" id="question"
+                   placeholder="Ask me anything..." />
+            <button onclick="askQuestion()">Send</button>
+            <button id="clear-btn" onclick="clearHistory()">Clear</button>
+        </div>
+    </div>
+
+    <script>
+        const sessionId = "user_" + Math.random().toString(36).substr(2, 9);
+
+        async function askQuestion() {
+            const input = document.getElementById("question");
+            const chatBox = document.getElementById("chat-box");
+            const question = input.value.trim();
+            if (!question) return;
+
+            // Show user message
+            chatBox.innerHTML += `
+                <div class="message user">${question}</div>`;
+            input.value = "";
+
+            // Show loading
+            const loadingId = "loading_" + Date.now();
+            chatBox.innerHTML += `
+                <div class="message assistant" id="${loadingId}">
+                    Thinking...</div>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
+
+            try {
+                // Use streaming
+                const response = await fetch("/ask-stream", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        question: question,
+                        session_id: sessionId
+                    })
+                });
+
+                const loadingEl = document.getElementById(loadingId);
+                loadingEl.textContent = "";
+
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const {done, value} = await reader.read();
+                    if (done) break;
+                    loadingEl.textContent += decoder.decode(value);
+                    chatBox.scrollTop = chatBox.scrollHeight;
+                }
+
+            } catch (error) {
+                document.getElementById(loadingId).textContent =
+                    "Error: Could not get response.";
+            }
+        }
+
+        async function clearHistory() {
+            await fetch("/clear", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({session_id: sessionId})
+            });
+            document.getElementById("chat-box").innerHTML = `
+                <div class="message assistant">
+                    Chat history cleared! Start a new conversation.</div>`;
+        }
+
+        document.getElementById("question").addEventListener("keypress",
+            function(e) {
+                if (e.key === "Enter") askQuestion();
+            }
+        );
+    </script>
+</body>
+</html>
