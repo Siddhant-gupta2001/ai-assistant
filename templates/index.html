@@ -1,95 +1,587 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.0.0/marked.min.js"></script>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Assistant</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #f0f2f5; }
-        .container { max-width: 800px; margin: 30px auto; padding: 20px; }
-        h1 { text-align: center; color: #333; margin-bottom: 20px; }
-        .chat-box { background: white; border-radius: 12px; padding: 20px;
-                    min-height: 400px; max-height: 500px; overflow-y: auto;
-                    margin-bottom: 20px; border: 1px solid #ddd; }
-        .message { margin: 10px 0; padding: 12px 16px; border-radius: 8px; }
-        .user { background: #007bff; color: white; margin-left: 20%; }
-        .assistant { background: #f1f1f1; color: #333; margin-right: 20%; }
-        .category { font-size: 11px; color: #888; margin-top: 4px; }
-        .input-row { display: flex; gap: 10px; }
-        input { flex: 1; padding: 12px; font-size: 16px;
-                border: 1px solid #ddd; border-radius: 8px; }
-        button { padding: 12px 20px; background: #007bff; color: white;
-                 border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
-        button:hover { background: #0056b3; }
-        #clear-btn { background: #dc3545; }
-        #clear-btn:hover { background: #c82333; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5;
+               height: 100vh; display: flex; flex-direction: column; }
+
+        /* Header */
+        .header { background: #007bff; color: white; padding: 15px;
+                  text-align: center; font-size: 20px; font-weight: bold; }
+
+        /* Tabs */
+        .tabs { display: flex; background: #0056b3; overflow-x: auto; }
+        .tab { padding: 12px 20px; color: rgba(255,255,255,0.7);
+               cursor: pointer; border-bottom: 3px solid transparent;
+               white-space: nowrap; font-size: 14px; }
+        .tab:hover { color: white; background: rgba(255,255,255,0.1); }
+        .tab.active { color: white; border-bottom: 3px solid white; }
+
+        /* Tab contents */
+        .tab-content { display: none; flex: 1; flex-direction: column;
+                       overflow: hidden; }
+        .tab-content.active { display: flex; }
+
+        /* Chat styles */
+        .chat-box { flex: 1; overflow-y: auto; padding: 15px;
+                    display: flex; flex-direction: column; gap: 10px; }
+        .message { padding: 12px 16px; border-radius: 18px;
+                   max-width: 80%; word-wrap: break-word; line-height: 1.6; }
+        .user { background: #007bff; color: white;
+                align-self: flex-end; border-bottom-right-radius: 4px; }
+        .assistant { background: white; color: #333;
+                     align-self: flex-start; border-bottom-left-radius: 4px;
+                     box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .input-area { background: white; padding: 12px;
+                      border-top: 1px solid #ddd;
+                      display: flex; gap: 8px; align-items: center; }
+        input[type="text"] { flex: 1; padding: 12px 16px; font-size: 16px;
+                border: 1px solid #ddd; border-radius: 25px; outline: none; }
+        input[type="text"]:focus { border-color: #007bff; }
+        .send-btn { background: #007bff; color: white; border: none;
+                    border-radius: 50%; width: 48px; height: 48px;
+                    font-size: 20px; cursor: pointer; flex-shrink: 0; }
+        .send-btn:hover { background: #0056b3; }
+        .clear-btn { background: #dc3545; color: white; border: none;
+                     border-radius: 50%; width: 48px; height: 48px;
+                     font-size: 16px; cursor: pointer; flex-shrink: 0; }
+        .clear-btn:hover { background: #c82333; }
+
+        /* Image section */
+        .image-section { flex: 1; overflow-y: auto; padding: 20px; }
+        .image-card { background: white; border-radius: 12px;
+                      padding: 20px; margin-bottom: 20px;
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .image-card h3 { color: #007bff; margin-bottom: 15px; font-size: 18px; }
+        .upload-area { border: 2px dashed #007bff; border-radius: 8px;
+                       padding: 30px; text-align: center; cursor: pointer;
+                       margin-bottom: 15px; color: #666; }
+        .upload-area:hover { background: #f0f7ff; }
+        .preview-img { max-width: 100%; border-radius: 8px;
+                       margin: 10px 0; display: none; }
+        .generated-img { max-width: 100%; border-radius: 8px;
+                         margin: 10px 0; display: none; }
+        textarea { width: 100%; padding: 12px; border: 1px solid #ddd;
+                   border-radius: 8px; font-size: 14px; height: 80px;
+                   resize: none; outline: none; font-family: Arial; }
+        textarea:focus { border-color: #007bff; }
+        .action-btn { background: #007bff; color: white; border: none;
+                      padding: 12px 24px; border-radius: 8px;
+                      cursor: pointer; font-size: 16px; width: 100%;
+                      margin-top: 10px; }
+        .action-btn:hover { background: #0056b3; }
+        .result-box { background: #f8f9fa; border-radius: 8px;
+                      padding: 15px; margin-top: 10px;
+                      display: none; line-height: 1.6; color: #333; }
+        .loading { text-align: center; color: #888;
+                   padding: 20px; display: none; }
+        .spinner { font-size: 30px; display: inline-block;
+                   animation: spin 1s linear infinite; }
+        @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+        /* Photo search styles */
+        .photo-search-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        .photo-search-input { flex: 1; padding: 12px; border: 1px solid #ddd;
+                              border-radius: 8px; font-size: 16px; outline: none; }
+        .photo-search-input:focus { border-color: #007bff; }
+        .search-btn { background: #007bff; color: white; border: none;
+                      padding: 12px 24px; border-radius: 8px;
+                      cursor: pointer; font-size: 16px; white-space: nowrap; }
+        .search-btn:hover { background: #0056b3; }
+        .photo-grid { display: grid;
+                      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                      gap: 12px; margin-top: 10px; }
+        .photo-item { border-radius: 8px; overflow: hidden;
+                      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+                      transition: transform 0.2s; }
+        .photo-item:hover { transform: scale(1.02); }
+        .photo-item img { width: 100%; height: 150px; object-fit: cover;
+                          cursor: pointer; display: block; }
+        .photo-credit { font-size: 11px; color: #888; padding: 5px 8px;
+                        background: white; text-align: center; }
+        .quick-tag { background: #e3f2fd; color: #007bff; padding: 4px 10px;
+                     border-radius: 20px; cursor: pointer; margin: 3px;
+                     display: inline-block; font-size: 13px;
+                     transition: background 0.2s; }
+        .quick-tag:hover { background: #007bff; color: white; }
+
+        /* ===== CELEBRITY NAVBAR STYLES ===== */
+        .celeb-section { flex: 1; overflow-y: auto; padding: 0; }
+
+        .celeb-navbar { background: #1a1a2e; padding: 15px 20px;
+                        position: sticky; top: 0; z-index: 10; }
+        .celeb-navbar-title { color: white; font-size: 16px;
+                              font-weight: bold; margin-bottom: 12px; }
+        .celeb-search-row { display: flex; gap: 10px; margin-bottom: 12px; }
+        .celeb-search-input { flex: 1; padding: 10px 16px; border: none;
+                              border-radius: 25px; font-size: 15px;
+                              background: rgba(255,255,255,0.15);
+                              color: white; outline: none; }
+        .celeb-search-input::placeholder { color: rgba(255,255,255,0.6); }
+        .celeb-search-input:focus { background: rgba(255,255,255,0.25); }
+        .celeb-search-btn { background: #007bff; color: white; border: none;
+                            padding: 10px 20px; border-radius: 25px;
+                            cursor: pointer; font-size: 15px; }
+        .celeb-search-btn:hover { background: #0056b3; }
+
+        /* Category pills */
+        .celeb-categories { display: flex; gap: 8px; overflow-x: auto;
+                            padding-bottom: 5px; }
+        .celeb-categories::-webkit-scrollbar { height: 3px; }
+        .celeb-cat { padding: 6px 16px; border-radius: 20px; cursor: pointer;
+                     font-size: 13px; white-space: nowrap; border: none;
+                     transition: all 0.2s; }
+        .celeb-cat.active { background: #007bff; color: white; }
+        .celeb-cat:not(.active) { background: rgba(255,255,255,0.15);
+                                   color: rgba(255,255,255,0.8); }
+        .celeb-cat:not(.active):hover { background: rgba(255,255,255,0.3); }
+
+        /* Celebrity grid */
+        .celeb-content { padding: 20px; }
+        .celeb-grid { display: grid;
+                      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+                      gap: 16px; }
+        .celeb-card { background: white; border-radius: 12px; overflow: hidden;
+                      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+                      cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .celeb-card:hover { transform: translateY(-4px);
+                            box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+        .celeb-card img { width: 100%; height: 200px; object-fit: cover;
+                          object-position: top; }
+        .celeb-card-info { padding: 12px; }
+        .celeb-card-name { font-weight: bold; font-size: 15px; color: #333; }
+        .celeb-card-desc { font-size: 12px; color: #666; margin-top: 4px;
+                           line-height: 1.4;
+                           display: -webkit-box; -webkit-line-clamp: 2;
+                           -webkit-box-orient: vertical; overflow: hidden; }
+        .celeb-card-wiki { display: inline-block; margin-top: 8px;
+                           font-size: 12px; color: #007bff; text-decoration: none; }
+        .celeb-card-wiki:hover { text-decoration: underline; }
+
+        /* Celebrity modal */
+        .celeb-modal { display: none; position: fixed; top: 0; left: 0;
+                       width: 100%; height: 100%; background: rgba(0,0,0,0.7);
+                       z-index: 1000; align-items: center; justify-content: center; }
+        .celeb-modal.open { display: flex; }
+        .celeb-modal-content { background: white; border-radius: 16px;
+                               max-width: 500px; width: 90%; max-height: 80vh;
+                               overflow-y: auto; }
+        .celeb-modal-img { width: 100%; height: 280px; object-fit: cover;
+                           object-position: top; border-radius: 16px 16px 0 0; }
+        .celeb-modal-body { padding: 20px; }
+        .celeb-modal-name { font-size: 22px; font-weight: bold; color: #333; }
+        .celeb-modal-desc { color: #555; line-height: 1.7; margin-top: 10px;
+                            font-size: 14px; }
+        .celeb-modal-links { margin-top: 15px; display: flex; gap: 10px; }
+        .celeb-modal-btn { padding: 8px 16px; border-radius: 8px; border: none;
+                           cursor: pointer; font-size: 14px; }
+        .celeb-modal-close { background: #dc3545; color: white; }
+        .celeb-modal-wiki { background: #007bff; color: white;
+                            text-decoration: none; display: inline-block; }
+
+        /* No result */
+        .no-result { text-align: center; padding: 40px; color: #666; }
+        .no-result-icon { font-size: 48px; margin-bottom: 10px; }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            .message { max-width: 90%; }
+            .tab { padding: 10px 12px; font-size: 12px; }
+            .photo-grid { grid-template-columns: repeat(2, 1fr); }
+            .celeb-grid { grid-template-columns: repeat(2, 1fr); }
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🤖 AI Assistant</h1>
+
+    <div class="header">🤖 AI Assistant</div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('chat', this)">💬 Chat</div>
+        <div class="tab" onclick="switchTab('analyze', this)">🔍 Analyze Image</div>
+        <div class="tab" onclick="switchTab('generate', this)">🎨 Generate Image</div>
+        <div class="tab" onclick="switchTab('photos', this)">📷 Search Photos</div>
+        <div class="tab" onclick="switchTab('celebrity', this)">⭐ Celebrities</div>
+    </div>
+
+    <!-- Tab 1: Chat -->
+    <div class="tab-content active" id="tab-chat">
         <div class="chat-box" id="chat-box">
             <div class="message assistant">
-                Hello! I am your AI Assistant. Ask me anything about
-                general topics, math, science, or coding!
+                Hello! I am your Siddy AI Assistant. Ask me anything about
+             math, science, or coding and life problems as well! 🚀
             </div>
         </div>
-        <div class="input-row">
-            <input type="text" id="question"
-                   placeholder="Ask me anything..." />
-            <button onclick="askQuestion()">Send</button>
-            <button id="clear-btn" onclick="clearHistory()">Clear</button>
+        <div class="input-area">
+            <input type="text" id="question" placeholder="Ask me anything..." />
+            <button class="send-btn" onclick="askQuestion()">➤</button>
+            <button class="clear-btn" onclick="clearHistory()">🗑</button>
+        </div>
+    </div>
+
+    <!-- Tab 2: Analyze Image -->
+    <div class="tab-content" id="tab-analyze">
+        <div class="image-section">
+            <div class="image-card">
+                <h3>🔍 Analyze Image</h3>
+                <div class="upload-area"
+                     onclick="document.getElementById('imageInput').click()">
+                    📷 Click to upload image or take photo<br>
+                    <small>JPG, PNG, WEBP supported</small>
+                </div>
+                <input type="file" id="imageInput" accept="image/*"
+                       capture="environment" style="display:none"
+                       onchange="previewImage(this)">
+                <img id="imagePreview" class="preview-img" />
+                <textarea id="imageQuestion"
+                    placeholder="What do you want to know about this image?
+Example: What is in this image?
+Example: What text is visible?
+Example: Describe the colors and mood"></textarea>
+                <button class="action-btn" onclick="analyzeImage()">
+                    🔍 Analyze Image
+                </button>
+                <div class="loading" id="analyze-loading">
+                    <span class="spinner">⚙️</span>
+                    <p>Analyzing image...</p>
+                </div>
+                <div class="result-box" id="analyze-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 3: Generate Image -->
+    <div class="tab-content" id="tab-generate">
+        <div class="image-section">
+            <div class="image-card">
+                <h3>🎨 Generate Image</h3>
+                <textarea id="generatePrompt"
+                    placeholder="Describe the image you want to generate...
+Example: Beautiful sunset over mountains with orange sky
+Example: Cute cat sitting on laptop cartoon style
+Example: Modern Indian city at night with neon lights
+Example: Cricket stadium filled with fans blue jerseys"></textarea>
+                <button class="action-btn" onclick="generateImage()">
+                    🎨 Generate Image
+                </button>
+                <div class="loading" id="generate-loading">
+                    <span class="spinner">🎨</span>
+                    <p>Generating image... (may take 30-60 seconds)</p>
+                </div>
+                <div class="result-box" id="generate-result"></div>
+                <img id="generatedImage" class="generated-img" />
+                <button id="download-btn" class="action-btn"
+                        onclick="downloadImage()"
+                        style="display:none; background:#28a745; margin-top:10px">
+                    ⬇️ Download Image
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 4: Search Photos -->
+    <div class="tab-content" id="tab-photos">
+        <div class="image-section">
+            <div class="image-card">
+                <h3>📷 Search Real Photos</h3>
+                <p style="color:#666; margin-bottom:15px; font-size:14px">
+                    Search millions of real photos from Unsplash
+                </p>
+                <div class="photo-search-row">
+                    <input type="text" class="photo-search-input"
+                           id="photoSearch"
+                           placeholder="Search cricket, Mumbai, nature..." />
+                    <button class="search-btn" onclick="searchPhotos()">
+                        🔍 Search
+                    </button>
+                </div>
+                <div style="margin-bottom:15px">
+                    <span style="font-size:13px; color:#666">Quick search: </span>
+                    <span class="quick-tag" onclick="quickSearch('cricket')">🏏 Cricket</span>
+                    <span class="quick-tag" onclick="quickSearch('Mumbai city')">🌆 Mumbai</span>
+                    <span class="quick-tag" onclick="quickSearch('nature India')">🌿 Nature</span>
+                    <span class="quick-tag" onclick="quickSearch('technology')">💻 Technology</span>
+                    <span class="quick-tag" onclick="quickSearch('food India')">🍛 Food</span>
+                </div>
+                <div class="loading" id="photo-loading">
+                    <span class="spinner">🔍</span>
+                    <p>Searching photos...</p>
+                </div>
+                <div id="photo-count"
+                     style="font-size:13px;color:#666;margin-bottom:10px;display:none"></div>
+                <div class="photo-grid" id="photo-results"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 5: Celebrity Search -->
+    <div class="tab-content" id="tab-celebrity">
+        <div class="celeb-section">
+
+            <!-- Sticky Navbar -->
+            <div class="celeb-navbar">
+                <div class="celeb-navbar-title">⭐ Celebrity Search</div>
+
+                <!-- Search bar -->
+                <div class="celeb-search-row">
+                    <input type="text" class="celeb-search-input"
+                           id="celebSearch"
+                           placeholder="Search any celebrity, athlete, politician..." />
+                    <button class="celeb-search-btn" onclick="searchCeleb()">
+                        🔍 Search
+                    </button>
+                </div>
+
+                <!-- Category pills -->
+                <div class="celeb-categories">
+                    <button class="celeb-cat active"
+                            onclick="loadCategory(this, 'cricket')">
+                        🏏 Cricketers
+                    </button>
+                    <button class="celeb-cat"
+                            onclick="loadCategory(this, 'bollywood')">
+                        🎬 Bollywood
+                    </button>
+                    <button class="celeb-cat"
+                            onclick="loadCategory(this, 'politics India')">
+                        🏛️ Politicians
+                    </button>
+                    <button class="celeb-cat"
+                            onclick="loadCategory(this, 'football player')">
+                        ⚽ Football
+                    </button>
+                    <button class="celeb-cat"
+                            onclick="loadCategory(this, 'technology CEO')">
+                        💻 Tech Leaders
+                    </button>
+                    <button class="celeb-cat"
+                            onclick="loadCategory(this, 'scientist')">
+                        🔬 Scientists
+                    </button>
+                </div>
+            </div>
+
+            <!-- Celebrity content -->
+            <div class="celeb-content">
+                <!-- Upload your own photo card -->
+<div class="image-card" style="margin-bottom:20px">
+    <h3>📸 Add Your Photo</h3>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+        <input type="text" id="myName"
+               placeholder="Your name"
+               style="padding:10px; border:1px solid #ddd;
+                      border-radius:8px; font-size:14px"/>
+        <input type="text" id="myDesc"
+               placeholder="About you (optional)"
+               style="padding:10px; border:1px solid #ddd;
+                      border-radius:8px; font-size:14px"/>
+    </div>
+    <div class="upload-area" style="margin-top:10px"
+         onclick="document.getElementById('myPhotoInput').click()">
+        📷 Click to upload your photo
+    </div>
+    <input type="file" id="myPhotoInput" accept="image/*"
+           style="display:none" onchange="previewMyPhoto(this)"/>
+    <img id="myPhotoPreview"
+         style="max-width:150px; border-radius:50%; margin:10px 0;
+                display:none; height:150px; object-fit:cover"/>
+    <button class="action-btn" onclick="uploadMyPhoto()">
+        ⬆️ Upload My Photo
+    </button>
+    <div id="upload-result" class="result-box"></div>
+</div>
+
+<!-- My photos grid -->
+<div id="my-celebs-grid" class="celeb-grid"
+     style="margin-bottom:20px"></div>
+                <div class="loading" id="celeb-loading">
+                    <span class="spinner">⭐</span>
+                    <p>Loading celebrities...</p>
+                </div>
+                <div class="celeb-grid" id="celeb-grid"></div>
+                <div id="celeb-no-result" style="display:none">
+                    <div class="no-result">
+                        <div class="no-result-icon">🔍</div>
+                        <p>No results found. Try a different name.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Celebrity Modal (popup when card clicked) -->
+    <div class="celeb-modal" id="celebModal" onclick="closeModal(event)">
+        <div class="celeb-modal-content">
+            <img id="modal-img" class="celeb-modal-img" src="" alt="" />
+            <div class="celeb-modal-body">
+                <div class="celeb-modal-name" id="modal-name"></div>
+                <div class="celeb-modal-desc" id="modal-desc"></div>
+                <div class="celeb-modal-links">
+                    <button class="celeb-modal-btn celeb-modal-close"
+                            onclick="document.getElementById('celebModal')
+                            .classList.remove('open')">
+                        ✕ Close
+                    </button>
+                    <a class="celeb-modal-btn celeb-modal-wiki"
+                       id="modal-wiki" href="#" target="_blank">
+                        📖 Wikipedia
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        const sessionId = "user_" + Math.random().toString(36).substr(2, 9);
+        // Preview selected photo
+function previewMyPhoto(input) {
+    const file = input.files[0]
+    if (file) {
+        const reader = new FileReader()
+        reader.onload = e => {
+            const p = document.getElementById("myPhotoPreview")
+            p.src = e.target.result
+            p.style.display = "block"
+        }
+        reader.readAsDataURL(file)
+    }
+}
+
+// Upload photo to server
+async function uploadMyPhoto() {
+    const name = document.getElementById("myName").value.trim()
+    const desc = document.getElementById("myDesc").value.trim()
+    const fileInput = document.getElementById("myPhotoInput")
+
+    if (!name) { alert("Please enter your name!"); return }
+    if (!fileInput.files[0]) { alert("Please select a photo!"); return }
+
+    const formData = new FormData()
+    formData.append("file", fileInput.files[0])
+    formData.append("name", name)
+    formData.append("description", desc || "Custom celebrity")
+
+    try {
+        const response = await fetch("/upload-my-photo", {
+            method: "POST",
+            body: formData
+        })
+        const data = await response.json()
+        const result = document.getElementById("upload-result")
+        result.style.display = "block"
+
+        if (data.success) {
+            result.innerHTML =
+                `✅ Photo uploaded successfully for <strong>${name}</strong>!`
+            loadMyCelebs()   // refresh the grid
+        } else {
+            result.innerHTML = `❌ Error: ${data.error}`
+        }
+    } catch (e) {
+        alert("Upload failed: " + e.message)
+    }
+}
+
+// Load custom uploaded photos
+async function loadMyCelebs() {
+    try {
+        const response = await fetch("/my-celebs")
+        const data = await response.json()
+        const grid = document.getElementById("my-celebs-grid")
+        grid.innerHTML = ""
+
+        if (data.celebs && data.celebs.length > 0) {
+            data.celebs.forEach(celeb => {
+                const card = document.createElement("div")
+                card.className = "celeb-card"
+                card.innerHTML = `
+                    <img src="${celeb.photo}"
+                         style="width:100%;height:200px;
+                                object-fit:cover;object-position:top"/>
+                    <div class="celeb-card-info">
+                        <div class="celeb-card-name">${celeb.name}</div>
+                        <div class="celeb-card-desc">
+                            ${celeb.description || ""}
+                        </div>
+                    </div>`
+                card.onclick = () => openModal(celeb)
+                grid.appendChild(card)
+            })
+        }
+    } catch (e) {
+        console.log("Error loading my celebs:", e)
+    }
+}
+
+
+        const sessionId = "user_" + Math.random().toString(36).substr(2, 9)
+
+        // ===== Tab switching =====
+        function switchTab(tab, el) {
+    document.querySelectorAll('.tab').forEach(t =>
+        t.classList.remove('active'))
+    document.querySelectorAll('.tab-content').forEach(t =>
+        t.classList.remove('active'))
+    el.classList.add('active')
+    document.getElementById('tab-' + tab).classList.add('active')
+
+    if (tab === 'celebrity' &&
+        document.getElementById('celeb-grid').innerHTML === '') {
+        loadDefaultCelebs()
+        loadMyCelebs()       // ✅ load custom photos too!
+    }
+
+
+            // Load default cricketers when celebrity tab opens
+            if (tab === 'celebrity' &&
+                document.getElementById('celeb-grid').innerHTML === '') {
+                loadDefaultCelebs()
+                loadMyCelebs()
+            }
+        }
+
+        // ===== Chat functions =====
+        function scrollBottom() {
+            const box = document.getElementById("chat-box")
+            box.scrollTop = box.scrollHeight
+        }
 
         async function askQuestion() {
-            const input = document.getElementById("question");
-            const chatBox = document.getElementById("chat-box");
-            const question = input.value.trim();
-            if (!question) return;
-
-            // Show user message
+            const input = document.getElementById("question")
+            const chatBox = document.getElementById("chat-box")
+            const question = input.value.trim()
+            if (!question) return
+            chatBox.innerHTML += `<div class="message user">${question}</div>`
+            input.value = ""
+            scrollBottom()
+            const loadingId = "load_" + Date.now()
             chatBox.innerHTML += `
-                <div class="message user">${question}</div>`;
-            input.value = "";
-
-            // Show loading
-            const loadingId = "loading_" + Date.now();
-            chatBox.innerHTML += `
-                <div class="message assistant" id="${loadingId}">
-                    Thinking...</div>`;
-            chatBox.scrollTop = chatBox.scrollHeight;
-
+                <div class="message assistant" id="${loadingId}">Thinking...</div>`
+            scrollBottom()
             try {
-                // Use streaming
                 const response = await fetch("/ask-stream", {
                     method: "POST",
                     headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({
-                        question: question,
-                        session_id: sessionId
-                    })
-                });
-
-                const loadingEl = document.getElementById(loadingId);
-                loadingEl.textContent = "";
-
-                const reader = response.body.getReader();
-                const decoder = new TextDecoder();
-
+                    body: JSON.stringify({question, session_id: sessionId})
+                })
+                const el = document.getElementById(loadingId)
+                el.textContent = ""
+                const reader = response.body.getReader()
+                const decoder = new TextDecoder()
                 while (true) {
-                    const {done, value} = await reader.read();
-                    if (done) break;
-                    loadingEl.textContent += decoder.decode(value);
-                    chatBox.scrollTop = chatBox.scrollHeight;
+                    const {done, value} = await reader.read()
+                    if (done) break
+                    el.textContent += decoder.decode(value)
+                    scrollBottom()
                 }
-
-            } catch (error) {
+            } catch (e) {
                 document.getElementById(loadingId).textContent =
-                    "Error: Could not get response.";
+                    "Sorry, something went wrong."
             }
         }
 
@@ -98,17 +590,296 @@
                 method: "POST",
                 headers: {"Content-Type": "application/json"},
                 body: JSON.stringify({session_id: sessionId})
-            });
+            })
             document.getElementById("chat-box").innerHTML = `
-                <div class="message assistant">
-                    Chat history cleared! Start a new conversation.</div>`;
+                <div class="message assistant">Chat cleared! 🚀</div>`
         }
 
         document.getElementById("question").addEventListener("keypress",
-            function(e) {
-                if (e.key === "Enter") askQuestion();
+            e => { if (e.key === "Enter") askQuestion() })
+
+        // ===== Analyze Image =====
+        function previewImage(input) {
+            const file = input.files[0]
+            if (file) {
+                const reader = new FileReader()
+                reader.onload = e => {
+                    const p = document.getElementById("imagePreview")
+                    p.src = e.target.result
+                    p.style.display = "block"
+                }
+                reader.readAsDataURL(file)
             }
-        );
+        }
+
+        async function analyzeImage() {
+            const fileInput = document.getElementById("imageInput")
+            const question = document.getElementById("imageQuestion").value
+                || "What is in this image? Describe in detail."
+            if (!fileInput.files[0]) {
+                alert("Please upload an image first!")
+                return
+            }
+            document.getElementById("analyze-loading").style.display = "block"
+            document.getElementById("analyze-result").style.display = "none"
+            const formData = new FormData()
+            formData.append("file", fileInput.files[0])
+            try {
+                const response = await fetch(
+                    `/analyze-image?question=${encodeURIComponent(question)}`,
+                    {method: "POST", body: formData}
+                )
+                const data = await response.json()
+                document.getElementById("analyze-loading").style.display = "none"
+                const result = document.getElementById("analyze-result")
+                result.style.display = "block"
+                result.innerHTML = data.success
+                    ? `<strong>Analysis:</strong><br><br>${marked.parse(data.answer)}`
+                    : `<strong>Error:</strong> ${data.error}`
+            } catch (e) {
+                document.getElementById("analyze-loading").style.display = "none"
+                document.getElementById("analyze-result").style.display = "block"
+                document.getElementById("analyze-result").textContent =
+                    "Error: " + e.message
+            }
+        }
+
+        // ===== Generate Image =====
+        async function generateImage() {
+            const prompt = document.getElementById("generatePrompt").value.trim()
+            if (!prompt) { alert("Please describe the image!"); return }
+            document.getElementById("generate-loading").style.display = "block"
+            document.getElementById("generatedImage").style.display = "none"
+            document.getElementById("download-btn").style.display = "none"
+            document.getElementById("generate-result").style.display = "none"
+            try {
+                const response = await fetch("/generate-image", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({question: prompt, session_id: sessionId})
+                })
+                document.getElementById("generate-loading").style.display = "none"
+                const ct = response.headers.get("content-type")
+                if (response.ok && ct && ct.includes("image")) {
+                    const blob = await response.blob()
+                    const url = URL.createObjectURL(blob)
+                    const img = document.getElementById("generatedImage")
+                    img.src = url
+                    img.style.display = "block"
+                    document.getElementById("download-btn").style.display = "block"
+                } else {
+                    const data = await response.json()
+                    const r = document.getElementById("generate-result")
+                    r.style.display = "block"
+                    r.innerHTML = `<strong>Error:</strong> ${data.error}`
+                }
+            } catch (e) {
+                document.getElementById("generate-loading").style.display = "none"
+                document.getElementById("generate-result").style.display = "block"
+                document.getElementById("generate-result").textContent =
+                    "Error: " + e.message
+            }
+        }
+
+        function downloadImage() {
+            const img = document.getElementById("generatedImage")
+            const a = document.createElement("a")
+            a.href = img.src
+            a.download = "ai-generated.png"
+            a.click()
+        }
+
+        // ===== Photo Search =====
+        function quickSearch(query) {
+            document.getElementById("photoSearch").value = query
+            searchPhotos()
+        }
+
+        async function searchPhotos() {
+            const query = document.getElementById("photoSearch").value.trim()
+            if (!query) { alert("Please enter a search term!"); return }
+            document.getElementById("photo-loading").style.display = "block"
+            document.getElementById("photo-results").innerHTML = ""
+            document.getElementById("photo-count").style.display = "none"
+            try {
+                const response = await fetch(
+                    `/search-photos/${encodeURIComponent(query)}`)
+                const data = await response.json()
+                document.getElementById("photo-loading").style.display = "none"
+                if (data.error) {
+                    document.getElementById("photo-results").innerHTML =
+                        `<p style="color:red">Error: ${data.error}</p>`
+                    return
+                }
+                if (data.photos && data.photos.length > 0) {
+                    const c = document.getElementById("photo-count")
+                    c.style.display = "block"
+                    c.textContent = `Found ${data.photos.length} photos for "${query}"`
+                    data.photos.forEach(photo => {
+                        document.getElementById("photo-results").innerHTML += `
+                            <div class="photo-item">
+                                <img src="${photo.url}"
+                                     alt="${photo.description || query}"
+                                     onclick="window.open('${photo.url}','_blank')"
+                                     title="Click to open full size"/>
+                                <div class="photo-credit">
+                                    📷 ${photo.photographer || "Unsplash"}
+                                </div>
+                            </div>`
+                    })
+                } else {
+                    document.getElementById("photo-results").innerHTML =
+                        `<p style="color:#666;padding:20px;text-align:center">
+                            No photos found for "${query}". Try different terms.</p>`
+                }
+            } catch (e) {
+                document.getElementById("photo-loading").style.display = "none"
+                document.getElementById("photo-results").innerHTML =
+                    `<p style="color:red">Error: ${e.message}</p>`
+            }
+        }
+
+        document.getElementById("photoSearch").addEventListener("keypress",
+            e => { if (e.key === "Enter") searchPhotos() })
+
+        // ===== Celebrity functions =====
+
+        // Default celebrities to show on load
+        const defaultCelebs = [
+            "Rohit Sharma", "Virat Kohli", "MS Dhoni",
+            "Sachin Tendulkar", "Hardik Pandya", "Jasprit Bumrah",
+            "Shubman Gill", "KL Rahul"
+        ]
+
+        async function loadDefaultCelebs() {
+            document.getElementById("celeb-loading").style.display = "block"
+            document.getElementById("celeb-grid").innerHTML = ""
+            for (const name of defaultCelebs) {
+                await fetchAndRenderCeleb(name)
+            }
+            document.getElementById("celeb-loading").style.display = "none"
+        }
+
+        async function loadCategory(el, category) {
+            // Update active button
+            document.querySelectorAll('.celeb-cat').forEach(b =>
+                b.classList.remove('active'))
+            el.classList.add('active')
+
+            // Category name lists
+            const categories = {
+                'cricket': ["Rohit Sharma", "Virat Kohli", "MS Dhoni",
+                             "Sachin Tendulkar", "Hardik Pandya",
+                             "Jasprit Bumrah"],
+                'bollywood': ["Shah Rukh Khan", "Salman Khan",
+                               "Amitabh Bachchan", "Deepika Padukone",
+                               "Priyanka Chopra", "Aamir Khan"],
+                'politics India': ["Narendra Modi", "Rahul Gandhi",
+                                    "Amit Shah", "Arvind Kejriwal",
+                                    "Mamata Banerjee", "Yogi Adityanath"],
+                'football player': ["Lionel Messi", "Cristiano Ronaldo",
+                                     "Neymar", "Kylian Mbappe",
+                                     "Erling Haaland", "Mohamed Salah"],
+                'technology CEO': ["Elon Musk", "Sundar Pichai",
+                                    "Satya Nadella", "Sam Altman",
+                                    "Jeff Bezos", "Mark Zuckerberg"],
+                'scientist': ["Albert Einstein", "Isaac Newton",
+                               "Stephen Hawking", "Marie Curie",
+                               "APJ Abdul Kalam", "Nikola Tesla"]
+            }
+
+            const names = categories[category] || []
+            document.getElementById("celeb-loading").style.display = "block"
+            document.getElementById("celeb-grid").innerHTML = ""
+            document.getElementById("celeb-no-result").style.display = "none"
+
+            for (const name of names) {
+                await fetchAndRenderCeleb(name)
+            }
+            document.getElementById("celeb-loading").style.display = "none"
+        }
+
+        async function fetchAndRenderCeleb(name) {
+            try {
+                const response = await fetch(
+                    `/celebrity-photo/${encodeURIComponent(name)}`)
+                const data = await response.json()
+                if (data.photo) {
+                    renderCelebCard(data)
+                }
+            } catch (e) {
+                console.log("Error fetching:", name, e)
+            }
+        }
+
+        function renderCelebCard(data) {
+            const card = document.createElement("div")
+            card.className = "celeb-card"
+            card.innerHTML = `
+                <img src="${data.photo}" alt="${data.name}"
+                     onerror="this.src='https://via.placeholder.com/200x200?text=${encodeURIComponent(data.name)}'"/>
+                <div class="celeb-card-info">
+                    <div class="celeb-card-name">${data.name}</div>
+                    <div class="celeb-card-desc">${data.description || ""}</div>
+                    <a class="celeb-card-wiki" href="${data.wikipedia}"
+                       target="_blank" onclick="event.stopPropagation()">
+                        📖 Wikipedia
+                    </a>
+                </div>`
+            card.onclick = () => openModal(data)
+            document.getElementById("celeb-grid").appendChild(card)
+        }
+
+        function openModal(data) {
+            document.getElementById("modal-img").src = data.photo
+            document.getElementById("modal-name").textContent = data.name
+            document.getElementById("modal-desc").textContent =
+                data.description || "No description available."
+            document.getElementById("modal-wiki").href =
+                data.wikipedia || "#"
+            document.getElementById("celebModal").classList.add("open")
+        }
+
+        function closeModal(e) {
+            if (e.target.id === "celebModal") {
+                document.getElementById("celebModal").classList.remove("open")
+            }
+        }
+
+        async function searchCeleb() {
+            const query = document.getElementById("celebSearch").value.trim()
+            if (!query) { alert("Please enter a celebrity name!"); return }
+
+            document.getElementById("celeb-loading").style.display = "block"
+            document.getElementById("celeb-grid").innerHTML = ""
+            document.getElementById("celeb-no-result").style.display = "none"
+
+            // Deactivate all category buttons
+            document.querySelectorAll('.celeb-cat').forEach(b =>
+                b.classList.remove('active'))
+
+            try {
+                const response = await fetch(
+                    `/celebrity-photo/${encodeURIComponent(query)}`)
+                const data = await response.json()
+                document.getElementById("celeb-loading").style.display = "none"
+
+                if (data.photo) {
+                    renderCelebCard(data)
+                } else {
+                    document.getElementById("celeb-no-result").style.display
+                        = "block"
+                }
+            } catch (e) {
+                document.getElementById("celeb-loading").style.display = "none"
+                document.getElementById("celeb-no-result").style.display = "block"
+            }
+        }
+
+        document.getElementById("celebSearch").addEventListener("keypress",
+            e => { if (e.key === "Enter") searchCeleb() })
     </script>
+
 </body>
 </html>
+
