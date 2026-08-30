@@ -21,7 +21,7 @@ load_dotenv()
 app = FastAPI(title="AI Assistant")
 
 llm = ChatGroq(
-    model="llama-3.1-8b-instant",
+    model="groq/compound",
     api_key=os.environ.get("GROQ_API_KEY")
 )
 
@@ -66,7 +66,13 @@ def ask(request: ChatRequest):
 def ask_stream(request: ChatRequest):
     chain = (
         ChatPromptTemplate.from_messages([
-            ("system", "You are a helpful assistant. Answer clearly."),
+            ("system", """Follow these rules:
+1. If the answer has multiple items → use bullet points (- item)
+2. If explaining steps → use numbered list (1. step)
+3. Use **bold** for important terms
+4. Keep paragraphs short (2-3 lines max)
+5. Add section headers with ## when answer is long
+6. Always structure your response clearly"""),
             ("human", "{question}")
         ]) | llm | StrOutputParser()
     )

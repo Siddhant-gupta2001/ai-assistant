@@ -2,6 +2,22 @@
 <html lang="en">
 <head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.0.0/marked.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+
+<script>
+// Configure marked to use highlight.js
+marked.setOptions({
+    highlight: function(code, lang) {
+        if (lang && hljs.getLanguage(lang)) {
+            return hljs.highlight(code, {language: lang}).value
+        }
+        return hljs.highlightAuto(code).value
+    },
+    breaks: true,
+    gfm: true
+})
+</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Assistant</title>
@@ -195,6 +211,80 @@
             .photo-grid { grid-template-columns: repeat(2, 1fr); }
             .celeb-grid { grid-template-columns: repeat(2, 1fr); }
         }
+
+        /* ===== Markdown styles ===== */
+.assistant ul { padding-left: 20px; margin: 8px 0; }
+.assistant ol { padding-left: 20px; margin: 8px 0; }
+.assistant li { margin: 4px 0; line-height: 1.6; }
+.assistant h1, .assistant h2, .assistant h3 {
+    color: #007bff; margin: 10px 0 5px 0; }
+.assistant strong { color: #222; font-weight: bold; }
+.assistant em { font-style: italic; }
+.assistant p { margin: 6px 0; line-height: 1.6; }
+
+/* Code inline */
+.assistant code {
+    background: #f0f0f0;
+    color: #d63384;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+
+/* Code blocks */
+.assistant pre {
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    margin: 10px 0;
+    border-left: 4px solid #007bff;
+}
+
+.assistant pre code {
+    background: transparent;   /* ✅ remove white background */
+    color: #f8f8f2;            /* ✅ light color for dark background */
+    font-size: 13px;
+    padding: 0;
+    border-radius: 0;
+    font-family: 'Courier New', monospace;
+    white-space: pre;
+}
+
+/* Tables */
+.assistant table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 10px 0;
+}
+.assistant th {
+    background: #007bff;
+    color: white;
+    padding: 8px 12px;
+    text-align: left;
+}
+.assistant td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #ddd;
+}
+.assistant tr:nth-child(even) { background: #f8f9fa; }
+
+/* Blockquotes */
+.assistant blockquote {
+    border-left: 4px solid #007bff;
+    padding: 8px 16px;
+    margin: 8px 0;
+    background: #f0f7ff;
+    color: #555;
+}
+
+/* Horizontal rule */
+.assistant hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 12px 0;
+}
     </style>
 </head>
 <body>
@@ -570,13 +660,14 @@ async function loadMyCelebs() {
                     body: JSON.stringify({question, session_id: sessionId})
                 })
                 const el = document.getElementById(loadingId)
-                el.textContent = ""
+                let rawText = ""
                 const reader = response.body.getReader()
                 const decoder = new TextDecoder()
                 while (true) {
                     const {done, value} = await reader.read()
                     if (done) break
-                    el.textContent += decoder.decode(value)
+                    rawText += decoder.decode(value)
+                    el.innerHTML= marked.parse(rawText)
                     scrollBottom()
                 }
             } catch (e) {

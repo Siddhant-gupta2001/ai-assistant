@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 llm = ChatGroq(
-    model="llama-3.1-8b-instant",
+    model="groq/compound",
     api_key=os.environ.get("GROQ_API_KEY")
 )
 
