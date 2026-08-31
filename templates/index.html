@@ -315,36 +315,55 @@ marked.setOptions({
         </div>
     </div>
 
-    <!-- Tab 2: Analyze Image -->
-    <div class="tab-content" id="tab-analyze">
-        <div class="image-section">
-            <div class="image-card">
-                <h3>🔍 Analyze Image</h3>
-                <div class="upload-area"
-                     onclick="document.getElementById('imageInput').click()">
-                    📷 Click to upload image or take photo<br>
-                    <small>JPG, PNG, WEBP supported</small>
-                </div>
-                <input type="file" id="imageInput" accept="image/*"
-                       capture="environment" style="display:none"
-                       onchange="previewImage(this)">
-                <img id="imagePreview" class="preview-img" />
-                <textarea id="imageQuestion"
-                    placeholder="What do you want to know about this image?
+   <!-- Tab 2: Analyze Image -->
+<div class="tab-content" id="tab-analyze">
+    <div class="image-section">
+        <div class="image-card">
+            <h3>🔍 Analyze Image</h3>
+
+            <!-- Two buttons — Camera OR Upload -->
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px">
+                <button class="action-btn"
+                        style="margin-top:0; background:#28a745"
+                        onclick="document.getElementById('cameraInput').click()">
+                    📷 Take Photo
+                </button>
+                <button class="action-btn"
+                        style="margin-top:0; background:#6c757d"
+                        onclick="document.getElementById('fileInput').click()">
+                    📁 Upload File
+                </button>
+            </div>
+
+            <!-- Camera input -->
+            <input type="file" id="cameraInput" accept="image/*"
+                    style="display:none"
+                   onchange="previewImage(this)">
+
+            <!-- File input — no capture attribute -->
+            <input type="file" id="fileInput" accept="image/*"
+                   style="display:none"
+                   onchange="previewImage(this)">
+
+            <img id="imagePreview" class="preview-img" />
+
+            <textarea id="imageQuestion"
+                placeholder="What do you want to know about this image?
 Example: What is in this image?
 Example: What text is visible?
 Example: Describe the colors and mood"></textarea>
-                <button class="action-btn" onclick="analyzeImage()">
-                    🔍 Analyze Image
-                </button>
-                <div class="loading" id="analyze-loading">
-                    <span class="spinner">⚙️</span>
-                    <p>Analyzing image...</p>
-                </div>
-                <div class="result-box" id="analyze-result"></div>
+
+            <button class="action-btn" onclick="analyzeImage()">
+                🔍 Analyze Image
+            </button>
+            <div class="loading" id="analyze-loading">
+                <span class="spinner">⚙️</span>
+                <p>Analyzing image...</p>
             </div>
+            <div class="result-box" id="analyze-result"></div>
         </div>
     </div>
+</div>
 
     <!-- Tab 3: Generate Image -->
     <div class="tab-content" id="tab-generate">
@@ -704,17 +723,28 @@ async function loadMyCelebs() {
         }
 
         async function analyzeImage() {
+            const cameraInput= document.getElementById("cameraInput")
             const fileInput = document.getElementById("imageInput")
             const question = document.getElementById("imageQuestion").value
                 || "What is in this image? Describe in detail."
-            if (!fileInput.files[0]) {
-                alert("Please upload an image first!")
+                
+                // Use whichever has a filesizeformat
+
+                let selectedFile= null
+                if (cameraInput.files[0]){
+                    selectedFile= cameraInput.files[0]
+                } else if (fileInput.files[0]){
+                    selectedFile= fileInput.files[0]
+                }
+
+            if (!selectedFile) {
+                alert("Please take a photo or upload an image first!")
                 return
             }
             document.getElementById("analyze-loading").style.display = "block"
             document.getElementById("analyze-result").style.display = "none"
             const formData = new FormData()
-            formData.append("file", fileInput.files[0])
+            formData.append("file", selectedFile)
             try {
                 const response = await fetch(
                     `/analyze-image?question=${encodeURIComponent(question)}`,
