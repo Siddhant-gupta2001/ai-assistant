@@ -322,28 +322,23 @@ marked.setOptions({
             <h3>🔍 Analyze Image</h3>
 
             <!-- Two buttons — Camera OR Upload -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px">
-                <button class="action-btn"
-                        style="margin-top:0; background:#28a745"
-                        onclick="document.getElementById('cameraInput').click()">
-                    📷 Take Photo
-                </button>
-                <button class="action-btn"
-                        style="margin-top:0; background:#6c757d"
-                        onclick="document.getElementById('fileInput').click()">
-                    📁 Upload File
-                </button>
-            </div>
-
-            <!-- Camera input -->
-            <input type="file" id="cameraInput" accept="image/*"
-                    style="display:none"
-                   onchange="previewImage(this)">
-
-            <!-- File input — no capture attribute -->
-            <input type="file" id="fileInput" accept="image/*"
-                   style="display:none"
-                   onchange="previewImage(this)">
+            <!-- ✅ New — camera AND file picker -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px">
+    <button class="action-btn" style="margin-top:0; background:#28a745"
+            onclick="document.getElementById('cameraInput').click()">
+        📷 Take Photo
+    </button>
+    <button class="action-btn" style="margin-top:0; background:#6c757d"
+            onclick="document.getElementById('fileInput').click()">
+        📁 Upload File
+    </button>
+</div>
+<input type="file" id="cameraInput" accept="image/*"
+       capture="environment" style="display:none"
+       onchange="previewImage(this)">
+<input type="file" id="fileInput" accept="image/*"
+       style="display:none"
+       onchange="previewImage(this)">
 
             <img id="imagePreview" class="preview-img" />
 
