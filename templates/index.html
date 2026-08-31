@@ -719,18 +719,13 @@ async function loadMyCelebs() {
 
         async function analyzeImage() {
             const cameraInput= document.getElementById("cameraInput")
-            const fileInput = document.getElementById("imageInput")
+            const fileInput = document.getElementById("fileInput")
             const question = document.getElementById("imageQuestion").value
                 || "What is in this image? Describe in detail."
                 
                 // Use whichever has a filesizeformat
 
-                let selectedFile= null
-                if (cameraInput.files[0]){
-                    selectedFile= cameraInput.files[0]
-                } else if (fileInput.files[0]){
-                    selectedFile= fileInput.files[0]
-                }
+                let selectedFile = cameraInput.files[0] || fileInput.files[0]
 
             if (!selectedFile) {
                 alert("Please take a photo or upload an image first!")
