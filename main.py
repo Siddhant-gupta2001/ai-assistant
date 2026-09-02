@@ -509,3 +509,20 @@ def get_my_celebs():
         return {"celebs": []}
     except Exception as e:
         return {"error": str(e), "celebs": []}
+
+
+@app.delete("/my-celebs/{index}")
+def delete_my_celeb(index:int):
+    import json
+    try:
+        if os.path.exists("static/custom_celebs.json"):
+            with open("static/custom_celebs.json", "r") as f:
+                celebs= json.load(f)
+            if 0 <= index <len(celebs):
+                deleted = celebs.pop(index)
+                with open("static/custom_celebs.json", "w") as f:
+                    json.dump(celebs,f)
+                return {"success": True, "message": f"Deleted {deleted['name']}"}
+        return {"success": False, "error": "Not found"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
