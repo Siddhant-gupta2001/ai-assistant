@@ -21,7 +21,7 @@ load_dotenv()
 app = FastAPI(title="AI Assistant")
 
 llm = ChatGroq(
-    model="groq/compound",
+    model="openai/gpt-oss-20b",
     api_key=os.environ.get("GROQ_API_KEY")
 )
 
@@ -62,8 +62,19 @@ def ask(request: ChatRequest):
     except Exception as e:
         return {"error": str(e)}
 
+request_counts= {}
+MAX_REQUEST=4
 @app.post("/ask-stream")
 def ask_stream(request: ChatRequest):
+    session_id= request.session_id
+    count= request_counts.get(session_id,0)
+    if count>=MAX_REQUEST:
+        def limit_exceed():
+            yield "You have reached your session limit. Please refresh the page and try again"
+        return StreamingResponse(limit_exceed(), media_type= "text/plain")
+
+
+    request_counts[session_id] = count+1
     chain = (
         ChatPromptTemplate.from_messages([
             ("system", """Follow these rules:
@@ -97,6 +108,16 @@ def ask_stream(request: ChatRequest):
                 pass
 
     return StreamingResponse(generate(), media_type="text/plain")
+
+@app.get("/remaining/{session_id}")
+def get_remaining(session_id:str):
+    count = request_counts.get(session_id,0)
+    remaining = MAX_REQUEST - count
+    return {
+        "used": count,
+        "remaining": remaining,
+        "limit": MAX_REQUEST
+    }
 
 @app.get("/history/{session_id}")
 def get_chat_history(session_id: str):
@@ -235,45 +256,55 @@ Please format your response as:
     except Exception as e:
         return {"success": False, "error": str(e)}
 #------Celelrbrity photos -------
+
+GOOGLE_API_KEY = os.environ.get("GOOGLE_SEARCH_API_KEY")
+GOOGLE_CX = os.environ.get("GOOGLE_SEARCH_CX")
+
 @app.get("/celebrity-photo/{name}")
 def get_celebrity_photo(name: str):
     try:
-        # Capitalize each word properly
         proper_name = name.strip().title()
 
-        # Try direct Wikipedia API
-        response = req.get(
-            "https://en.wikipedia.org/api/rest_v1/page/summary/" +
-            proper_name.replace(" ", "_"),
-            headers={"User-Agent": "AIAssistant/1.0"}
-        )
-        data = response.json()
-
-        # If no thumbnail try search API
-        if "thumbnail" not in data:
-            search_response = req.get(
-                "https://en.wikipedia.org/w/api.php",
-                params={
-                    "action": "query",
-                    "list": "search",
-                    "srsearch": proper_name,
-                    "format": "json",
-                    "srlimit": 1
-                }
-            )
-            search_data = search_response.json()
-            results = search_data.get("query", {}).get("search", [])
-
-            if results:
-                page_title = results[0]["title"]
-                # Fetch that page
-                response = req.get(
-                    "https://en.wikipedia.org/api/rest_v1/page/summary/" +
-                    page_title.replace(" ", "_"),
-                    headers={"User-Agent": "AIAssistant/1.0"}
+        # First try Wikipedia
+        def fetch_wiki(title):
+            try:
+                r = req.get(
+                    f"https://en.wikipedia.org/api/rest_v1/page/summary/{title.replace(' ', '_')}",
+                    headers={"User-Agent": "Mozilla/5.0 AIAssistant/1.0"},
+                    timeout=10
                 )
-                data = response.json()
+                if r.status_code == 200 and r.text:
+                    return r.json()
+                return {}
+            except:
+                return {}
 
+        data = fetch_wiki(proper_name)
+
+        # Wikipedia search fallback
+        if "thumbnail" not in data:
+            try:
+                search = req.get(
+                    "https://en.wikipedia.org/w/api.php",
+                    params={
+                        "action": "query",
+                        "list": "search",
+                        "srsearch": proper_name,
+                        "format": "json",
+                        "srlimit": 3
+                    },
+                    headers={"User-Agent": "Mozilla/5.0"},
+                    timeout=10
+                )
+                results = search.json().get("query", {}).get("search", [])
+                for result in results:
+                    data = fetch_wiki(result["title"])
+                    if "thumbnail" in data:
+                        break
+            except:
+                pass
+
+        # If Wikipedia has photo — return it
         if "thumbnail" in data:
             return {
                 "name": data.get("title", proper_name),
@@ -282,17 +313,45 @@ def get_celebrity_photo(name: str):
                 "wikipedia": data.get("content_urls", {})
                               .get("desktop", {}).get("page", "")
             }
-        else:
-            return {
-                "name": proper_name,
-                "photo": None,
-                "description": data.get("extract", "No info found")[:300],
-                "wikipedia": data.get("content_urls", {})
-                              .get("desktop", {}).get("page", "")
-            }
+
+        # Wikipedia has no photo — try Google Images
+        if GOOGLE_API_KEY and GOOGLE_CX:
+            try:
+                google_r = req.get(
+                    "https://www.googleapis.com/customsearch/v1",
+                    params={
+                        "key": GOOGLE_API_KEY,
+                        "cx": GOOGLE_CX,
+                        "q": proper_name,
+                        "searchType": "image",
+                        "num": 1,
+                        "imgType": "face",   # face photos only
+                        "safe": "active"
+                    },
+                    timeout=10
+                )
+                google_data = google_r.json()
+                items = google_data.get("items", [])
+                if items:
+                    return {
+                        "name": proper_name,
+                        "photo": items[0]["link"],
+                        "description": data.get("extract", "")[:300],
+                        "wikipedia": ""
+                    }
+            except Exception as e:
+                print(f"Google search error: {e}")
+
+        # Nothing found
+        return {
+            "name": proper_name,
+            "photo": None,
+            "description": data.get("extract", "No photo available")[:300],
+            "wikipedia": ""
+        }
+
     except Exception as e:
         return {"error": str(e), "photo": None, "name": name}
-
 # ---- Generate Image ----
 @app.post("/generate-image")
 async def generate_image(request: ChatRequest):
@@ -512,17 +571,17 @@ def get_my_celebs():
 
 
 @app.delete("/my-celebs/{index}")
-def delete_my_celeb(index:int):
+def delete_my_celeb(index: int):
     import json
     try:
         if os.path.exists("static/custom_celebs.json"):
             with open("static/custom_celebs.json", "r") as f:
-                celebs= json.load(f)
-            if 0 <= index <len(celebs):
-                deleted = celebs.pop(index)
+                celebs = json.load(f)
+            if 0 <= index < len(celebs):
+                celebs.pop(index)
                 with open("static/custom_celebs.json", "w") as f:
-                    json.dump(celebs,f)
-                return {"success": True, "message": f"Deleted {deleted['name']}"}
+                    json.dump(celebs, f)
+                return {"success": True}
         return {"success": False, "error": "Not found"}
     except Exception as e:
         return {"success": False, "error": str(e)}

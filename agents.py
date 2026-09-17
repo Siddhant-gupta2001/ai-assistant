@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 llm = ChatGroq(
-    model="groq/compound",
+    model= "openai/gpt-oss-20b",
     api_key=os.environ.get("GROQ_API_KEY")
 )
 
