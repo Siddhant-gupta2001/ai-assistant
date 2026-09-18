@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from fastapi.responses import StreamingResponse, HTMLResponse, Response
 from pydantic import BaseModel
 from langchain_groq import ChatGroq
@@ -66,24 +67,29 @@ request_counts= {}
 MAX_REQUEST=4
 @app.post("/ask-stream")
 def ask_stream(request: ChatRequest):
-    session_id= request.session_id
-    count= request_counts.get(session_id,0)
-    if count>=MAX_REQUEST:
+    session_id = request.session_id
+    count = request_counts.get(session_id, 0)
+
+    if count >= MAX_REQUEST:
         def limit_exceed():
-            yield "You have reached your session limit. Please refresh the page and try again"
-        return StreamingResponse(limit_exceed(), media_type= "text/plain")
+            yield "⚠️ You have reached your limit of 4 questions. Please refresh to start a new session."
+        return StreamingResponse(limit_exceed(), media_type="text/plain")
 
+    request_counts[session_id] = count + 1
 
-    request_counts[session_id] = count+1
+    # ✅ Get chat history for this session
+    history = get_history(session_id)
+    print(f"History for {session_id}: {len(history)} messages")
+
     chain = (
         ChatPromptTemplate.from_messages([
-            ("system", """Follow these rules:
-1. If the answer has multiple items → use bullet points (- item)
-2. If explaining steps → use numbered list (1. step)
+            ("system", """You are a helpful assistant. Follow these rules:
+1. If the answer has multiple items → use bullet points
+2. If explaining steps → use numbered list
 3. Use **bold** for important terms
-4. Keep paragraphs short (2-3 lines max)
-5. Add section headers with ## when answer is long
-6. Always structure your response clearly"""),
+4. Keep paragraphs short
+5. Always remember what the user told you in this conversation"""),
+            MessagesPlaceholder(variable_name="chat_history"),  # ✅ add history
             ("human", "{question}")
         ]) | llm | StrOutputParser()
     )
@@ -91,7 +97,10 @@ def ask_stream(request: ChatRequest):
     def generate():
         full_response = ""
         try:
-            for chunk in chain.stream({"question": request.question}):
+            for chunk in chain.stream({
+                "question": request.question,
+                "chat_history": history    # ✅ pass history
+            }):
                 full_response += chunk
                 yield chunk
         except Exception as e:
@@ -104,11 +113,12 @@ def ask_stream(request: ChatRequest):
                         request.question,
                         full_response
                     )
-            except:
-                pass
+                    print(f"Saved message. History now: {len(get_history(session_id))}")
+                
+            except Exception as e:
+                print(f"save error as {e}")
 
     return StreamingResponse(generate(), media_type="text/plain")
-
 @app.get("/remaining/{session_id}")
 def get_remaining(session_id:str):
     count = request_counts.get(session_id,0)
