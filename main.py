@@ -16,6 +16,8 @@ import base64                                                          # ✅ Err
 import requests as req
 from groq import Groq
 from dotenv import load_dotenv
+from datetime import date
+from fastapi import Request as HTTPRequest
 
 load_dotenv()
 
@@ -63,33 +65,50 @@ def ask(request: ChatRequest):
     except Exception as e:
         return {"error": str(e)}
 
-request_counts= {}
-MAX_REQUEST=4
-@app.post("/ask-stream")
-def ask_stream(request: ChatRequest):
-    session_id = request.session_id
-    count = request_counts.get(session_id, 0)
+# Track by IP + date (resets daily automatically)
+ip_daily_counts = {}
+MAX_DAILY_REQUESTS = 4
 
-    if count >= MAX_REQUEST:
+def get_client_ip(http_request):
+    # Handle proxies (Render uses proxy)
+    forwarded = http_request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return http_request.client.host
+
+def check_rate_limit(ip: str) -> tuple:
+    today = str(date.today())
+    key = f"{ip}_{today}"
+    count = ip_daily_counts.get(key, 0)
+    remaining = MAX_DAILY_REQUESTS - count
+    return count, remaining, key
+
+@app.post("/ask-stream")
+def ask_stream(request: ChatRequest, http_request: HTTPRequest):
+    # ---- Rate limit by IP ----
+    client_ip = get_client_ip(http_request)
+    count, remaining, key = check_rate_limit(client_ip)
+
+    if remaining <= 0:
         def limit_exceed():
-            yield "⚠️ You have reached your limit of 4 questions. Please refresh to start a new session."
+            yield "⚠️ You have reached your daily limit of 4 questions. Come back tomorrow!"
         return StreamingResponse(limit_exceed(), media_type="text/plain")
 
-    request_counts[session_id] = count + 1
+    # Increment count
+    ip_daily_counts[key] = count + 1
 
-    # ✅ Get chat history for this session
-    history = get_history(session_id)
-    print(f"History for {session_id}: {len(history)} messages")
+    # Get chat history
+    history = get_history(request.session_id)
 
     chain = (
         ChatPromptTemplate.from_messages([
-            ("system", """You are a helpful assistant. Follow these rules:
-1. If the answer has multiple items → use bullet points
-2. If explaining steps → use numbered list
+            ("system", """You are a helpful assistant. Remember everything the user tells you.
+Follow these rules:
+1. Use bullet points for multiple items
+2. Use numbered list for steps
 3. Use **bold** for important terms
-4. Keep paragraphs short
-5. Always remember what the user told you in this conversation"""),
-            MessagesPlaceholder(variable_name="chat_history"),  # ✅ add history
+4. Keep paragraphs short"""),
+            MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{question}")
         ]) | llm | StrOutputParser()
     )
@@ -99,34 +118,29 @@ def ask_stream(request: ChatRequest):
         try:
             for chunk in chain.stream({
                 "question": request.question,
-                "chat_history": history    # ✅ pass history
+                "chat_history": history
             }):
                 full_response += chunk
                 yield chunk
         except Exception as e:
-            yield f"\nSorry, something went wrong."
+            yield f"Sorry, something went wrong."
         finally:
             try:
                 if full_response:
-                    save_message(
-                        request.session_id,
-                        request.question,
-                        full_response
-                    )
-                    print(f"Saved message. History now: {len(get_history(session_id))}")
-                
-            except Exception as e:
-                print(f"save error as {e}")
+                    save_message(request.session_id, request.question, full_response)
+            except:
+                pass
 
     return StreamingResponse(generate(), media_type="text/plain")
 @app.get("/remaining/{session_id}")
-def get_remaining(session_id:str):
-    count = request_counts.get(session_id,0)
-    remaining = MAX_REQUEST - count
+def get_remaining(session_id: str, http_request: HTTPRequest):
+    client_ip = get_client_ip(http_request)
+    count, remaining, key = check_rate_limit(client_ip)
     return {
         "used": count,
         "remaining": remaining,
-        "limit": MAX_REQUEST
+        "limit": MAX_DAILY_REQUESTS,
+        "resets": "tomorrow"
     }
 
 @app.get("/history/{session_id}")

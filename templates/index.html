@@ -440,38 +440,39 @@ Example: Cricket stadium filled with fans blue jerseys"></textarea>
         box.scrollTop = box.scrollHeight
     }
 
-    async function askQuestion() {
-        const input = document.getElementById("question")
-        const chatBox = document.getElementById("chat-box")
-        const question = input.value.trim()
-        if (!question) return
-        chatBox.innerHTML += `<div class="message user">${question}</div>`
-        input.value = ""
-        scrollBottom()
-        const loadingId = "load_" + Date.now()
-        chatBox.innerHTML += `<div class="message assistant" id="${loadingId}">Thinking...</div>`
-        scrollBottom()
-        try {
-            const response = await fetch("/ask-stream", {
-                method: "POST",
-                headers: {"Content-Type": "application/json"},
-                body: JSON.stringify({question, session_id: sessionId})
-            })
-            const el = document.getElementById(loadingId)
-            let rawText = ""
-            const reader = response.body.getReader()
-            const decoder = new TextDecoder()
-            while (true) {
-                const {done, value} = await reader.read()
-                if (done) break
-                rawText += decoder.decode(value)
-                el.innerHTML = marked.parse(rawText)
-                scrollBottom()
-            }
-        } catch (e) {
-            document.getElementById(loadingId).textContent = "Sorry, something went wrong."
+   async function askQuestion() {
+    const input = document.getElementById("question")
+    const chatBox = document.getElementById("chat-box")
+    const question = input.value.trim()
+    if (!question) return
+    chatBox.innerHTML += `<div class="message user">${question}</div>`
+    input.value = ""
+    scrollBottom()
+    const loadingId = "load_" + Date.now()
+    chatBox.innerHTML += `<div class="message assistant" id="${loadingId}">Thinking...</div>`
+    scrollBottom()
+    try {
+        const response = await fetch("/ask-stream", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({question, session_id: sessionId})
+        })
+        const el = document.getElementById(loadingId)
+        let rawText = ""
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        while (true) {
+            const {done, value} = await reader.read()
+            if (done) break
+            rawText += decoder.decode(value)
+            el.innerHTML = marked.parse(rawText)
+            scrollBottom()
         }
+        await updateRemainingCount()  // ✅ update counter after each question
+    } catch (e) {
+        document.getElementById(loadingId).textContent = "Sorry, something went wrong."
     }
+}
 
     async function clearHistory() {
         await fetch("/clear", {
@@ -821,7 +822,7 @@ async function fetchAndRenderCeleb(name, category) {
     }
 }
 
-async function deleteMyPhoto(index) {
+    async function deleteMyPhoto(index) {
     if (!confirm("Delete this photo?")) return
     try {
         const response = await fetch(`/my-celebs/${index}`, {
@@ -837,6 +838,41 @@ async function deleteMyPhoto(index) {
         alert("Delete failed: " + e.message)
     }
 }
+
+    async function updateRemainingCount() {
+    try {
+        const r = await fetch(`/remaining/${sessionId}`)  // ✅ capital I
+        const data = await r.json()
+        const remaining = data.remaining
+
+        let counter = document.getElementById("question-counter")
+        if (!counter) {
+            counter = document.createElement("div")
+            counter.id = "question-counter"
+            counter.style.cssText = `
+                text-align:center; font-size:12px;
+                color:#666; padding:6px;
+                background:white; border-top:1px solid #eee;`
+            document.querySelector(".input-area").before(counter)
+        }
+        if (remaining <= 0) {
+            counter.style.color = "#dc3545"
+            counter.innerHTML = "⚠️ Daily limit reached (4/4). Come back tomorrow!"
+            document.getElementById("question").disabled = true
+            document.querySelector(".send-btn").disabled = true
+        } else if (remaining <= 3) {
+            counter.style.color = "#ff9800"
+            counter.innerHTML = `⚠️ Only ${remaining} questions left today`
+        } else {
+            counter.style.color = "#28a745"
+            counter.innerHTML = `✅ ${remaining} of 4 daily questions remaining`
+        }
+    } catch (e) {
+        console.log("Counter error:", e)
+    }
+}
+
+updateRemainingCount()  // ✅ no template tags after this
 </script>
 
 </body>
