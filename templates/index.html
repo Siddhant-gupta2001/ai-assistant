@@ -198,6 +198,30 @@
             .photo-grid { grid-template-columns: repeat(2, 1fr); }
             .celeb-grid { grid-template-columns: repeat(2, 1fr); }
         }
+        /* Mic button */
+.mic-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.3s;
+}
+.mic-btn.listening {
+    background: #dc3545;
+    animation: pulse 1s infinite;
+}
+.mic-btn:hover { opacity: 0.9; }
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,53,69,0.4); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(220,53,69,0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,53,69,0); }
+}
     </style>
 </head>
 <body>
@@ -220,12 +244,16 @@
             math, science, coding and life problems! 🚀
         </div>
     </div>
-    <div class="input-area">
-        <input type="text" id="question" placeholder="Ask me anything..." />
+
+        <div class="input-area">
+        <input type="text" id="question" placeholder="Ask me anything or use mic..." />
+        <button class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Click to speak">
+            🎤
+        </button>
         <button class="send-btn" onclick="askQuestion()">➤</button>
         <button class="clear-btn" onclick="clearHistory()">🗑</button>
     </div>
-</div>
+</div>  <!-- ✅ This closes tab-chat div -->
 
 <!-- Tab 2: Analyze Image -->
 <div class="tab-content" id="tab-analyze">
@@ -468,6 +496,9 @@ Example: Cricket stadium filled with fans blue jerseys"></textarea>
             el.innerHTML = marked.parse(rawText)
             scrollBottom()
         }
+         // ✅ Auto speak the response in selected language
+        const selectedLang = document.getElementById("langSelector")?.value || "en-IN"
+        speakText(rawText, selectedLang)
         await updateRemainingCount()  // ✅ update counter after each question
     } catch (e) {
         document.getElementById(loadingId).textContent = "Sorry, something went wrong."
@@ -873,6 +904,316 @@ async function fetchAndRenderCeleb(name, category) {
 }
 
 updateRemainingCount()  // ✅ no template tags after this
+
+// == voice assistant
+let recognition= null
+let isListening= false
+let isSpeaking= false
+let detectedLanguage= "en-IN"
+
+const languages = [
+    "en-IN",   // English India
+    "en-US",   // English US
+    "hi-IN",   // Hindi
+    "ta-IN",   // Tamil
+    "te-IN",   // Telugu
+    "mr-IN",   // Marathi
+    "bn-IN",   // Bengali
+    "gu-IN",   // Gujarati
+    "kn-IN",   // Kannada
+    "ml-IN",   // Malayalam
+    "pa-IN",   // Punjabi
+    "ur-IN",   // Urdu
+    "es-ES",   // Spanish
+    "fr-FR",   // French
+    "de-DE",   // German
+    "ja-JP",   // Japanese
+    "zh-CN",   // Chinese
+    "ar-SA",   // Arabic
+    "ru-RU",   // Russian
+    "pt-BR",   // Portuguese
+]
+
+function initVoice() {
+    if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+        alert("Voice not supported in the browser. Use Chrome")
+        return false
+    }
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+
+    recognition = new SpeechRecognition()
+    recognition.continuous = false
+    recognition.interimResults= true 
+    recognition.maxAlternatives = 1 
+
+    //Try to detect language automatically
+    recognition.lang = detectLanguage
+
+    recognition.onstart = () => {
+       isListning = true 
+       const btn = document.getElementById("micBtn")
+       btn.classList.add("listening")
+       btn.textContent= "🔴"
+       btn.title= "Listning...click to stop"
+       showVoiceStatus("🎤 Listening... speak now!")
+    }
+
+    recognition.onresult = (event) => {
+        let transcript = ""
+        let isFinal = false
+          
+        for (let i= event.resultIndex ; i< event.results.length; i++){
+            transcript= event.results[i][0].transcript
+            isFinal = event.results[i].isFinal
+        }
+
+        // show in input box as user speaks
+        document.getElementById("question").value = transcript
+
+        if(isFinal){
+            showVoiceStatus("✅ Got it! Processing...")
+            stopListening()
+            //Auto send after 500ms
+
+            setTimeout(() => {
+                if (transcript.trim()) {
+                    askQuestion()
+                }
+            
+            },500)
+        }
+    }
+
+    recognition.onerror = (event) => {
+        console.log("Voice error ", event.error)
+        stopListening()
+        if (event.error === "no-speech") {
+            showVoiceStatus("⚠️ No speech detected. Try again!")
+        } else if (event.error === "not-allowed") {
+            showVoiceStatus("❌ Microphone access denied!")
+        } else {
+            showVoiceStatus(`❌ Error: ${event.error}`)
+        }
+    }
+
+    recognition.onend = () => {
+        stopListening()
+    }
+    return true
+
+}
+
+function toggleVoice() {
+    // stop speaking if AI is reading
+    if (isSpeaking) {
+        window.speechSynthesis.cancel()
+        isSpeaking= false
+    }
+
+    if (isListening) {
+        stopListning()
+    } else {
+        startListning()
+    }
+}
+
+function startListning() {
+    if (!recognition) {
+        if (!initVoice()) return
+    }
+    try {
+        recognition.start()
+    } catch (e) {
+        console.log("Already started:", e)
+    }
+}
+
+function stopListening() {
+    isListening = false
+    const btn = document.getElementById("micBtn")
+    if (btn) {
+        btn.classList.remove("listening")
+        btn.textContent = "🎤"
+        btn.title = "Click to speak"
+    }
+    if (recognition) {
+        try { recognition.stop() } catch (e) {}
+    }
+}
+
+function showVoiceStatus(message) {
+    let status = document.getElementById("voice-status")
+    if (!status) {
+        status = document.createElement("div")
+        status.id = "voice-status"
+        status.style.cssText = `
+            text-align:center; font-size:13px; padding:6px;
+            background:#e3f2fd; color:#0056b3;
+            border-top:1px solid #bee5eb;
+            transition: all 0.3s;`
+        document.querySelector(".input-area").before(status)
+    }
+    status.textContent = message
+    // Auto hide after 3 seconds
+    setTimeout(() => {
+        if (status) status.textContent = ""
+    }, 3000)
+}
+
+// ===== TEXT TO SPEECH =====
+function speakText(text, lang = "en-IN") {
+    if (!window.speechSynthesis) return
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel()
+
+    // Clean markdown for speech
+    const cleanText = text
+        .replace(/#{1,6}\s/g, "")      // remove headers
+        .replace(/\*\*(.*?)\*\*/g, "$1") // remove bold
+        .replace(/\*(.*?)\*/g, "$1")    // remove italic
+        .replace(/`(.*?)`/g, "$1")      // remove code
+        .replace(/\[(.*?)\]\(.*?\)/g, "$1") // remove links
+        .replace(/[-*•]\s/g, "")        // remove bullets
+        .replace(/\n+/g, ". ")          // newlines to pauses
+        .trim()
+
+    const utterance = new SpeechSynthesisUtterance(cleanText)
+    utterance.lang = lang
+    utterance.rate = 0.9    // slightly slower for clarity
+    utterance.pitch = 1
+    utterance.volume = 1
+
+    utterance.onstart = () => {
+        isSpeaking = true
+        showVoiceStatus("🔊 AI is speaking... click mic to stop")
+    }
+
+    utterance.onend = () => {
+        isSpeaking = false
+        showVoiceStatus("")
+    }
+
+    utterance.onerror = (e) => {
+        isSpeaking = false
+        console.log("Speech error:", e)
+    }
+
+    window.speechSynthesis.speak(utterance)
+}
+
+// Add language selector
+function addLanguageSelector() {
+    const inputArea = document.querySelector(".input-area")
+    const selector = document.createElement("select")
+    selector.id = "langSelector"
+    selector.style.cssText = `
+        padding: 6px; border: 1px solid #ddd;
+        border-radius: 20px; font-size: 12px;
+        background: white; cursor: pointer;
+        max-width: 120px;`
+    selector.innerHTML = `
+        <option value="en-IN">🇮🇳 English</option>
+        <option value="hi-IN">🇮🇳 Hindi</option>
+        <option value="ta-IN">🇮🇳 Tamil</option>
+        <option value="te-IN">🇮🇳 Telugu</option>
+        <option value="mr-IN">🇮🇳 Marathi</option>
+        <option value="bn-IN">🇮🇳 Bengali</option>
+        <option value="gu-IN">🇮🇳 Gujarati</option>
+        <option value="kn-IN">🇮🇳 Kannada</option>
+        <option value="ml-IN">🇮🇳 Malayalam</option>
+        <option value="pa-IN">🇮🇳 Punjabi</option>
+        <option value="es-ES">🇪🇸 Spanish</option>
+        <option value="fr-FR">🇫🇷 French</option>
+        <option value="de-DE">🇩🇪 German</option>
+        <option value="ja-JP">🇯🇵 Japanese</option>
+        <option value="zh-CN">🇨🇳 Chinese</option>
+        <option value="ar-SA">🇸🇦 Arabic</option>
+    `
+    selector.onchange = () => {
+        detectedLanguage = selector.value
+        if (recognition) {
+            recognition.lang = detectedLanguage
+        }
+    }
+    inputArea.insertBefore(selector, inputArea.firstChild)
+}
+
+// Initialize on page load
+addLanguageSelector()
+
+function initVoice() {
+    if (!('webkitSpeechRecognition' in window) &&
+        !('SpeechRecognition' in window)) {
+        alert("Voice not supported. Please use Chrome browser!")
+        return false
+    }
+
+    // ✅ Request microphone permission first
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(() => {
+            console.log("Mic permission granted!")
+        })
+        .catch((err) => {
+            alert("Microphone access denied! Please allow mic in browser settings.")
+            return false
+        })
+
+    const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition
+
+    recognition = new SpeechRecognition()
+    recognition.continuous = false
+    recognition.interimResults = true
+    recognition.maxAlternatives = 1
+    recognition.lang = detectedLanguage
+
+    recognition.onstart = () => {
+        isListening = true
+        const btn = document.getElementById("micBtn")
+        btn.classList.add("listening")
+        btn.textContent = "🔴"
+        btn.title = "Listening... click to stop"
+        showVoiceStatus("🎤 Listening... speak now!")
+    }
+
+    recognition.onresult = (event) => {
+        let transcript = ""
+        let isFinal = false
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript = event.results[i][0].transcript
+            isFinal = event.results[i].isFinal
+        }
+        document.getElementById("question").value = transcript
+        if (isFinal) {
+            showVoiceStatus("✅ Got it! Processing...")
+            stopListening()
+            setTimeout(() => {
+                if (transcript.trim()) askQuestion()
+            }, 500)
+        }
+    }
+
+    recognition.onerror = (event) => {
+        console.log("Voice error:", event.error)
+        stopListening()
+        if (event.error === "no-speech") {
+            showVoiceStatus("⚠️ No speech detected. Try again!")
+        } else if (event.error === "not-allowed") {
+            showVoiceStatus("❌ Microphone access denied! Check browser settings.")
+            alert("Please allow microphone access:\nClick 🔒 in address bar → Allow Microphone")
+        } else {
+            showVoiceStatus(`❌ Error: ${event.error}`)
+        }
+    }
+
+    recognition.onend = () => {
+        stopListening()
+    }
+
+    return true
+}
 </script>
 
 </body>
