@@ -17,6 +17,7 @@ import requests as req
 from groq import Groq
 from dotenv import load_dotenv
 from datetime import date
+from datetime import datetime
 from fastapi import Request as HTTPRequest
 
 load_dotenv()
@@ -67,7 +68,8 @@ def ask(request: ChatRequest):
 
 # Track by IP + date (resets daily automatically)
 ip_daily_counts = {}
-MAX_DAILY_REQUESTS = 4
+MAX_DAILY_REQUESTS = 10
+WINDOW_HOURS= 4
 
 def get_client_ip(http_request):
     # Handle proxies (Render uses proxy)
@@ -77,21 +79,30 @@ def get_client_ip(http_request):
     return http_request.client.host
 
 def check_rate_limit(ip: str) -> tuple:
-    today = str(date.today())
-    key = f"{ip}_{today}"
+    now = datetime.now()
+    hour_block = now.hour // WINDOW_HOURS
+    key = f"{ip}_{now.date()}_{hour_block}"
     count = ip_daily_counts.get(key, 0)
     remaining = MAX_DAILY_REQUESTS - count
-    return count, remaining, key
+
+    next_block = (hour_block + 1) * WINDOW_HOURS
+    if next_block >= 24:
+        reset_msg = "tomorrow"
+    else:
+        reset_msg = f"at {next_block:02d} : 00"
+
+    return count , remaining , key , reset_msg
+    
 
 @app.post("/ask-stream")
 def ask_stream(request: ChatRequest, http_request: HTTPRequest):
     # ---- Rate limit by IP ----
     client_ip = get_client_ip(http_request)
-    count, remaining, key = check_rate_limit(client_ip)
+    count, remaining, key, reset_msg = check_rate_limit(client_ip)
 
     if remaining <= 0:
         def limit_exceed():
-            yield "⚠️ You have reached your daily limit of 4 questions. Come back tomorrow!"
+            yield f"⚠️ You have reached your daily limit of 4 questions. Come back tomorrow! {reset_msg}"
         return StreamingResponse(limit_exceed(), media_type="text/plain")
 
     # Increment count
@@ -135,12 +146,13 @@ Follow these rules:
 @app.get("/remaining/{session_id}")
 def get_remaining(session_id: str, http_request: HTTPRequest):
     client_ip = get_client_ip(http_request)
-    count, remaining, key = check_rate_limit(client_ip)
+    count, remaining, key, reset_msg = check_rate_limit(client_ip)
     return {
         "used": count,
         "remaining": remaining,
         "limit": MAX_DAILY_REQUESTS,
-        "resets": "tomorrow"
+        "resets": "tomorrow",
+        "window":"4 hours"
     }
 
 @app.get("/history/{session_id}")
