@@ -23,6 +23,25 @@ import re
 
 load_dotenv()
 
+#Blocked ips
+
+blocked_ips = set()
+
+# offensive word detection
+OFFENSIVE_PATTERN = [
+    r'\b(abuse|hate|kill|threat|bomb|weapon)\b'
+]
+
+def is_offensive(text: str)-> bool:
+    text_lower = text.lower()
+    for pattern in OFFENSIVE_PATTERN:
+        if re.search(pattern,text_lower):
+            return True
+    return False
+
+def is_blocked(ip:str) -> bool:
+    return ip in blocked_ips
+
 app = FastAPI(title="AI Assistant")
 
 llm = ChatGroq(
@@ -635,29 +654,13 @@ def delete_my_celeb(index: int):
 
 
 
-#Blocked ips
-
-blocked_ips = set()
-
-# offensive word detection
-OFFENSIVE_PATTERN = [
-    r'\b(abuse|hate|kill|threat|bomb|weapon)\b'
-]
-
-def is_offensive(text: str)-> bool:
-    text_lower = text.lower()
-    for pattern in OFFENSIVE_PATTERN:
-        if re.search(pattern,text_lower):
-            return True
-        return False
-
-def is_blocked(ip:str) -> bool:
-    return ip in blocked_ips
 
 #Admin endpoint to view all activity
 
-@app.get("admin/activity")
-def get_activity():
+@app.get("/admin/activity")
+def get_activity(admin_key: str=""):
+    if admin_key!= os.environ.get("ADMIN_KEY", "siddy123"):
+        return {"error": "Unauthorized — add ?admin_key=siddy123"}
     return {
         "total_ips": len(ip_daily_counts),
         "blocked_ips": list(blocked_ips),
