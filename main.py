@@ -20,6 +20,7 @@ from datetime import date
 from datetime import datetime
 from fastapi import Request as HTTPRequest
 import re
+import json
 
 load_dotenv()
 
@@ -48,6 +49,38 @@ llm = ChatGroq(
     model="openai/gpt-oss-20b",
     api_key=os.environ.get("GROQ_API_KEY")
 )
+
+# visitor tracking
+visitors = {}
+
+def track_visitor(http_request, session_id:str= "", user_name: str=""):
+    client_ip= get_client_ip(http_request)
+    now = datetime.now()
+
+    if client_ip not in visitors:
+        visitors[client_ip] = {
+            "ip": client_ip,
+            "first_visit": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "last_visit": now.strftime("%Y-%m-%d %H:%M:%S"),
+            "visit_count": 0,
+            "question_asked": 0,
+            "sessions": [],
+            "user_agent":http_request.header.get("User-Agent", "Unknown"),
+            "country":"",
+            "blocked": False 
+        }
+
+    v = visitors[client_ip]
+    v["last_visit"] = now.strftime("%Y-%m-%d %H:%M:%S")
+    v["visit_count"] += 1
+
+    if session_id and session_id not in v["sessions"]:
+        v["sessions"].append(session_id)
+
+    if user_name and user_name != "Guest":
+        v["user_name"] = user_name
+
+    return client_ip
 
 # ✅ Error 17 fixed — groq client defined
 groq_client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
@@ -118,6 +151,10 @@ def check_rate_limit(ip: str) -> tuple:
 def ask_stream(request: ChatRequest, http_request: HTTPRequest):
     # ---- Rate limit by IP ----
     client_ip = get_client_ip(http_request)
+    track_visitor(http_request, request.session_id)
+
+    if client_ip in visitors:
+        visitors[client_ip]["question_asked"] +=1
     if is_blocked(client_ip):
         def blocked():
             yield "❌ Your access has been blocked. Contact support."
@@ -173,6 +210,13 @@ Follow these rules:
                 pass
 
     return StreamingResponse(generate(), media_type="text/plain")
+
+@app.get("/chat" , response_class= HTMLResponse)
+def chat_ui(http_request: HTTPRequest):
+    track_visitor(http_request)
+    with open("templates/index.html", "r", encoding="urf-8") as f:
+        return f.read()
+    
 @app.get("/remaining/{session_id}")
 def get_remaining(session_id: str, http_request: HTTPRequest):
     client_ip = get_client_ip(http_request)
@@ -669,6 +713,47 @@ def get_activity(admin_key: str=""):
         }
     }
 
+app.get("/admin/visitors")
+def get_visitors(admin_key: str=""):
+    if admin_key != os.environ.get("ADMIN_KEY", "siddy123"):
+        return {"error":"Unauthorized - add ? admin+key= siddy123"}
+
+    visitor_list = []
+    for ip, data in visitors.items():
+        visitor_list.append({
+            "ip": ip,
+            "name": data.get("user_name", "Unknown"),
+            "first_visit": data["first_visit"],
+            "last_visit": data["last_visit"],
+            "visit_count": data["visit_count"],
+            "question_asked": data["question_asked"],
+            "session": len(data["session"]),
+            "device": get_device_type(data.get("user_agent", "")),
+            "blocked": ip in blocked_ips
+        })
+
+    # sort by last visit
+    visitor_list.sort(key= lambda x: x ["last_visit"], reverse=True)
+
+    return {
+        "total_visitors": len(visitor_list),
+        "total_questions":sum(v["question_asked"] for v in visitor_list),
+        "blocked_count": len(blocked_ips),
+        "visitors": visitor_list
+    }
+
+def get_device_type(user_agent: str) -> str:
+    ua = user_agent.lower()
+    if "mobile" in ua or "android" in ua or "iphone" in ua:
+        return "📱 Mobile"
+    elif "tablet" in ua or "ipad" in ua:
+        return "📱 Tablet"
+    else:
+        return "💻 Desktop"
+
+
+
+
 # Admin endpoint to block the IP
 @app.post("/admin/block/{ip}")
 def block_ip(ip: str, admin_key: str = ""):
@@ -685,3 +770,157 @@ def unblock_ip(ip: str , admin_key: str = ""):
            return {"error": "Unauthorized"}
     blocked_ips.discard(ip)
     return {"success": True, "unblocked": ip}
+
+# Block via GET (for easy browser use)
+@app.get("/admin/block-get/{ip}")
+def block_ip_get(ip: str, admin_key: str = ""):
+    if admin_key != os.environ.get("ADMIN_KEY", "siddy123"):
+        return {"error": "Unauthorized"}
+    blocked_ips.add(ip)
+    return HTMLResponse(f"""
+        <html><body style='font-family:Arial;padding:40px;text-align:center'>
+            <h2>🚫 IP {ip} has been blocked!</h2>
+            <a href='/admin/dashboard?admin_key=siddy123'>← Back to Dashboard</a>
+        </body></html>
+    """)
+
+@app.get("/admin/unblock/{ip}")
+def unblock_ip_get(ip: str, admin_key: str = ""):
+    if admin_key != os.environ.get("ADMIN_KEY", "siddy123"):
+        return {"error": "Unauthorized"}
+    blocked_ips.discard(ip)
+    return HTMLResponse(f"""
+        <html><body style='font-family:Arial;padding:40px;text-align:center'>
+            <h2>✅ IP {ip} has been unblocked!</h2>
+            <a href='/admin/dashboard?admin_key=siddy123'>← Back to Dashboard</a>
+        </body></html>
+    """)
+
+@app.get("/admin/dashboard", response_class=HTMLResponse)
+def admin_dashboard(admin_key: str = ""):
+    if admin_key != os.environ.get("ADMIN_KEY", "siddy123"):
+        return """<html><body style='font-family:Arial;padding:40px;text-align:center'>
+            <h2>🔒 Unauthorized</h2>
+            <p>Add ?admin_key=siddy123 to the URL</p>
+        </body></html>"""
+
+    from memory import sessions
+    total_sessions = len(sessions)
+    total_messages = sum(len(v) for v in sessions.values())
+    total_visitors = len(visitors)
+    total_questions = sum(v.get("questions_asked", 0) for v in visitors.values())
+
+    # Build visitor rows
+    rows = ""
+    sorted_visitors = sorted(
+        visitors.items(),
+        key=lambda x: x[1]["last_visit"],
+        reverse=True
+    )
+
+    for ip, data in sorted_visitors:
+        is_ip_blocked = ip in blocked_ips
+        status = "🔴 Blocked" if is_ip_blocked else "🟢 Active"
+        name = data.get("user_name", "Unknown")
+        device = get_device_type(data.get("user_agent", ""))
+        block_btn = f"""
+            <a href='/admin/unblock/{ip}?admin_key=siddy123'
+               style='background:#28a745;color:white;padding:4px 8px;
+                      border-radius:4px;text-decoration:none;font-size:12px'>
+               ✅ Unblock
+            </a>
+        """ if is_ip_blocked else f"""
+            <a href='/admin/block-get/{ip}?admin_key=siddy123'
+               style='background:#dc3545;color:white;padding:4px 8px;
+                      border-radius:4px;text-decoration:none;font-size:12px'>
+               🚫 Block
+            </a>
+        """
+
+        rows += f"""
+        <tr style="{'background:#ffe8e8' if is_ip_blocked else ''}">
+            <td style="padding:10px">{ip}</td>
+            <td style="padding:10px">{name}</td>
+            <td style="padding:10px">{device}</td>
+            <td style="padding:10px">{data['first_visit']}</td>
+            <td style="padding:10px">{data['last_visit']}</td>
+            <td style="padding:10px">{data['visit_count']}</td>
+            <td style="padding:10px">{data.get('questions_asked', 0)}</td>
+            <td style="padding:10px">{status}</td>
+            <td style="padding:10px">{block_btn}</td>
+        </tr>"""
+
+    return f"""
+    <html>
+    <head>
+        <title>Admin Dashboard</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+            body {{ font-family: Arial, sans-serif; padding: 20px; background: #f0f2f5; }}
+            h1 {{ color: #007bff; }}
+            .stats {{ display: grid; grid-template-columns: repeat(4,1fr); gap: 15px; margin-bottom: 20px; }}
+            .stat {{ background: white; padding: 20px; border-radius: 12px;
+                     box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }}
+            .stat h2 {{ font-size: 36px; margin: 0; }}
+            .stat p {{ color: #666; margin: 5px 0 0; }}
+            table {{ width: 100%; border-collapse: collapse; background: white;
+                     border-radius: 12px; overflow: hidden;
+                     box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
+            th {{ background: #007bff; color: white; padding: 12px; text-align: left; }}
+            tr:hover {{ background: #f8f9fa; }}
+            .refresh {{ background: #007bff; color: white; padding: 10px 20px;
+                        border-radius: 8px; text-decoration: none; display: inline-block;
+                        margin-bottom: 15px; }}
+            @media(max-width:600px) {{
+                .stats {{ grid-template-columns: repeat(2,1fr); }}
+                table {{ font-size: 12px; }}
+            }}
+        </style>
+        <meta http-equiv="refresh" content="30">
+    </head>
+    <body>
+        <h1>🤖 Siddy AI Assistant — Admin Dashboard</h1>
+        <a class="refresh" href="/admin/dashboard?admin_key=siddy123">🔄 Refresh</a>
+
+        <div class="stats">
+            <div class="stat">
+                <h2 style="color:#007bff">{total_visitors}</h2>
+                <p>👥 Total Visitors</p>
+            </div>
+            <div class="stat">
+                <h2 style="color:#28a745">{total_questions}</h2>
+                <p>💬 Questions Asked</p>
+            </div>
+            <div class="stat">
+                <h2 style="color:#ffc107">{total_sessions}</h2>
+                <p>🔑 Active Sessions</p>
+            </div>
+            <div class="stat">
+                <h2 style="color:#dc3545">{len(blocked_ips)}</h2>
+                <p>🚫 Blocked IPs</p>
+            </div>
+        </div>
+
+        <h2>👥 Visitor Log</h2>
+        <table>
+            <tr>
+                <th>IP Address</th>
+                <th>Name</th>
+                <th>Device</th>
+                <th>First Visit</th>
+                <th>Last Visit</th>
+                <th>Visits</th>
+                <th>Questions</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+            {rows}
+        </table>
+        <br>
+        <p style="color:#666; font-size:12px">
+            Auto-refreshes every 30 seconds | 
+            <a href="/admin/visitors?admin_key=siddy123">View JSON</a>
+        </p>
+    </body>
+    </html>
+    """
