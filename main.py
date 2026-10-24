@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from datetime import date
 from datetime import datetime
 from fastapi import Request as HTTPRequest
+import re
 
 load_dotenv()
 
@@ -98,6 +99,16 @@ def check_rate_limit(ip: str) -> tuple:
 def ask_stream(request: ChatRequest, http_request: HTTPRequest):
     # ---- Rate limit by IP ----
     client_ip = get_client_ip(http_request)
+    if is_blocked(client_ip):
+        def blocked():
+            yield "❌ Your access has been blocked. Contact support."
+        return StreamingResponse(blocked(), media_type="text/plain")
+
+    if is_offensive(request.question):
+        #Auto blocked after offensive message
+        def offensive():
+            yield "⚠️ Offensive content detected. Your access has been blocked."
+        return StreamingResponse(offensive(), media_type= "text/plain")
     count, remaining, key, reset_msg = check_rate_limit(client_ip)
 
     if remaining <= 0:
@@ -621,3 +632,53 @@ def delete_my_celeb(index: int):
         return {"success": False, "error": "Not found"}
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+
+#Blocked ips
+
+blocked_ips = set()
+
+# offensive word detection
+OFFENSIVE_PATTERN = [
+    r'\b(abuse|hate|kill|threat|bomb|weapon)\b'
+]
+
+def is_offensive(text: str)-> bool:
+    text_lower = text.lower()
+    for pattern in OFFENSIVE_PATTERN:
+        if re.search(pattern,text_lower):
+            return True
+        return False
+
+def is_blocked(ip:str) -> bool:
+    return ip in blocked_ips
+
+#Admin endpoint to view all activity
+
+@app.get("admin/activity")
+def get_activity():
+    return {
+        "total_ips": len(ip_daily_counts),
+        "blocked_ips": list(blocked_ips),
+        "activity":{
+            k: v for k, v in ip_daily_counts.items()
+        }
+    }
+
+# Admin endpoint to block the IP
+@app.post("/admin/block/{ip}")
+def block_ip(ip: str, admin_key: str = ""):
+    if admin_key != os.environ.get("ADMIN_KEY", "siddy123"):
+        return {"error" : "unauthorized"}
+    blocked_ips.add(ip)
+    return {"success": True, "blocked" : ip}
+
+#Admin endpoint to unblock an IP 
+
+@app.post("/admin/unblock/{ip}")
+def unblock_ip(ip: str , admin_key: str = ""):
+    if admin_key != os.environ.get("ADMIN_KEY", "siddy123"):
+           return {"error": "Unauthorized"}
+    blocked_ips.discard(ip)
+    return {"success": True, "unblocked": ip}

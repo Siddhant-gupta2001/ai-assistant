@@ -22,14 +22,14 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-    font-family: -apple-system, BlinkMacSystemFont,
-                 'Segoe UI', Roboto, Oxygen, Ubuntu,
-                 'Helvetica Neue', Arial, sans-serif;
-    background: #f0f2f5;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-}
+            font-family: -apple-system, BlinkMacSystemFont,
+                         'Segoe UI', Roboto, Oxygen, Ubuntu,
+                         'Helvetica Neue', Arial, sans-serif;
+            background: #f0f2f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
         .header { background: #007bff; color: white; padding: 15px;
                   text-align: center; font-size: 20px; font-weight: bold; }
         .tabs { display: flex; background: #0056b3; overflow-x: auto; }
@@ -38,8 +38,7 @@
                white-space: nowrap; font-size: 14px; }
         .tab:hover { color: white; background: rgba(255,255,255,0.1); }
         .tab.active { color: white; border-bottom: 3px solid white; }
-        .tab-content { display: none; flex: 1; flex-direction: column;
-                       overflow: hidden; }
+        .tab-content { display: none; flex: 1; flex-direction: column; overflow: hidden; }
         .tab-content.active { display: flex; }
         .chat-box { flex: 1; overflow-y: auto; padding: 15px;
                     display: flex; flex-direction: column; gap: 10px; }
@@ -69,24 +68,20 @@
                       padding: 20px; margin-bottom: 20px;
                       box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .image-card h3 { color: #007bff; margin-bottom: 15px; font-size: 18px; }
-        .preview-img { max-width: 100%; border-radius: 8px;
-                       margin: 10px 0; display: none; }
-        .generated-img { max-width: 100%; border-radius: 8px;
-                         margin: 10px 0; display: none; }
+        .preview-img { max-width: 100%; border-radius: 8px; margin: 10px 0; display: none; }
+        .generated-img { max-width: 100%; border-radius: 8px; margin: 10px 0; display: none; }
         textarea { width: 100%; padding: 12px; border: 1px solid #ddd;
                    border-radius: 8px; font-size: 14px; height: 80px;
-                   resize: none; outline: none; font-family: Arial; }
+                   resize: none; outline: none; font-family: inherit; }
         textarea:focus { border-color: #007bff; }
         .action-btn { background: #007bff; color: white; border: none;
                       padding: 12px 24px; border-radius: 8px;
-                      cursor: pointer; font-size: 16px; width: 100%;
-                      margin-top: 10px; }
+                      cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
         .action-btn:hover { background: #0056b3; }
         .result-box { background: #f8f9fa; border-radius: 8px;
                       padding: 15px; margin-top: 10px;
                       display: none; line-height: 1.6; color: #333; }
-        .loading { text-align: center; color: #888;
-                   padding: 20px; display: none; }
+        .loading { text-align: center; color: #888; padding: 20px; display: none; }
         .spinner { font-size: 30px; display: inline-block;
                    animation: spin 1s linear infinite; }
         @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
@@ -168,8 +163,6 @@
                             text-decoration: none; display: inline-block; }
         .no-result { text-align: center; padding: 40px; color: #666; }
         .no-result-icon { font-size: 48px; margin-bottom: 10px; }
-
-        /* ===== Markdown styles ===== */
         .assistant ul { padding-left: 20px; margin: 8px 0; }
         .assistant ol { padding-left: 20px; margin: 8px 0; }
         .assistant li { margin: 4px 0; line-height: 1.6; }
@@ -188,8 +181,6 @@
         .assistant tr:nth-child(even) { background: #f8f9fa; }
         .assistant blockquote { border-left: 4px solid #007bff; padding: 8px 16px;
                                 margin: 8px 0; background: #f0f7ff; color: #555; }
-
-        /* Upload buttons */
         .upload-btn-row { display: grid; grid-template-columns: 1fr 1fr;
                           gap: 10px; margin-bottom: 15px; }
         .upload-btn { padding: 20px; border: none; border-radius: 10px;
@@ -198,37 +189,22 @@
         .upload-btn:hover { opacity: 0.9; }
         .btn-camera { background: #28a745; }
         .btn-gallery { background: #007bff; }
-
+        .mic-btn { background: #6c757d; color: white; border: none;
+                   border-radius: 50%; width: 48px; height: 48px;
+                   font-size: 20px; cursor: pointer; flex-shrink: 0; transition: all 0.3s; }
+        .mic-btn.listening { background: #dc3545; animation: pulse 1s infinite; }
+        .mic-btn:hover { opacity: 0.9; }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,53,69,0.4); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(220,53,69,0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,53,69,0); }
+        }
         @media (max-width: 600px) {
             .message { max-width: 90%; }
             .tab { padding: 10px 12px; font-size: 12px; }
             .photo-grid { grid-template-columns: repeat(2, 1fr); }
             .celeb-grid { grid-template-columns: repeat(2, 1fr); }
         }
-        /* Mic button */
-.mic-btn {
-    background: #6c757d;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 48px;
-    height: 48px;
-    font-size: 20px;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: all 0.3s;
-}
-.mic-btn.listening {
-    background: #dc3545;
-    animation: pulse 1s infinite;
-}
-.mic-btn:hover { opacity: 0.9; }
-
-@keyframes pulse {
-    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,53,69,0.4); }
-    70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(220,53,69,0); }
-    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220,53,69,0); }
-}
     </style>
 </head>
 <body>
@@ -251,16 +227,13 @@
             math, science, coding and life problems! 🚀
         </div>
     </div>
-
-        <div class="input-area">
+    <div class="input-area">
         <input type="text" id="question" placeholder="Ask me anything or use mic..." />
-        <button class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Click to speak">
-            🎤
-        </button>
+        <button class="mic-btn" id="micBtn" onclick="toggleVoice()" title="Click to speak">🎤</button>
         <button class="send-btn" onclick="askQuestion()">➤</button>
         <button class="clear-btn" onclick="clearHistory()">🗑</button>
     </div>
-</div>  <!-- ✅ This closes tab-chat div -->
+</div>
 
 <!-- Tab 2: Analyze Image -->
 <div class="tab-content" id="tab-analyze">
@@ -270,8 +243,6 @@
             <p style="color:#666; font-size:13px; margin-bottom:12px">
                 Choose to take a photo or upload from your gallery/files
             </p>
-
-            <!-- TWO BUTTONS — Camera and Gallery -->
             <div class="upload-btn-row">
                 <button class="upload-btn btn-camera"
                         onclick="document.getElementById('cameraInput').click()">
@@ -284,31 +255,18 @@
                     <small style="font-weight:normal; font-size:12px">Choose File</small>
                 </button>
             </div>
-
-            <!-- Camera input — forces camera -->
             <input type="file" id="cameraInput" accept="image/*"
-                   capture="environment" style="display:none"
-                   onchange="previewImage(this)">
-
-            <!-- Gallery input — NO capture attribute, opens file picker -->
+                   capture="environment" style="display:none" onchange="previewImage(this)">
             <input type="file" id="galleryInput" accept="image/*"
-                   style="display:none"
-                   onchange="previewImage(this)">
-
+                   style="display:none" onchange="previewImage(this)">
             <img id="imagePreview" class="preview-img" />
-
             <textarea id="imageQuestion"
                 placeholder="What do you want to know about this image?
 Example: What is in this image?
-Example: What text is visible?
-Example: Describe the colors and mood"></textarea>
-
-            <button class="action-btn" onclick="analyzeImage()">
-                🔍 Analyze Image
-            </button>
+Example: What text is visible?"></textarea>
+            <button class="action-btn" onclick="analyzeImage()">🔍 Analyze Image</button>
             <div class="loading" id="analyze-loading">
-                <span class="spinner">⚙️</span>
-                <p>Analyzing image...</p>
+                <span class="spinner">⚙️</span><p>Analyzing image...</p>
             </div>
             <div class="result-box" id="analyze-result"></div>
         </div>
@@ -322,8 +280,7 @@ Example: Describe the colors and mood"></textarea>
             <h3>🎨 Generate Image</h3>
             <textarea id="generatePrompt"
                 placeholder="Describe the image you want to generate...
-Example: Beautiful sunset over mountains with orange sky
-Example: Cricket stadium filled with fans blue jerseys"></textarea>
+Example: Beautiful sunset over mountains with orange sky"></textarea>
             <button class="action-btn" onclick="generateImage()">🎨 Generate Image</button>
             <div class="loading" id="generate-loading">
                 <span class="spinner">🎨</span>
@@ -399,17 +356,12 @@ Example: Cricket stadium filled with fans blue jerseys"></textarea>
                 </div>
                 <div class="upload-btn-row" style="margin-top:10px">
                     <button class="upload-btn btn-camera"
-                            onclick="document.getElementById('myCameraInput').click()">
-                        📷 Take Photo
-                    </button>
+                            onclick="document.getElementById('myCameraInput').click()">📷 Take Photo</button>
                     <button class="upload-btn btn-gallery"
-                            onclick="document.getElementById('myGalleryInput').click()">
-                        🖼️ From Gallery
-                    </button>
+                            onclick="document.getElementById('myGalleryInput').click()">🖼️ From Gallery</button>
                 </div>
                 <input type="file" id="myCameraInput" accept="image/*"
-                       capture="environment" style="display:none"
-                       onchange="previewMyPhoto(this)"/>
+                       capture="environment" style="display:none" onchange="previewMyPhoto(this)"/>
                 <input type="file" id="myGalleryInput" accept="image/*"
                        style="display:none" onchange="previewMyPhoto(this)"/>
                 <img id="myPhotoPreview"
@@ -456,6 +408,37 @@ Example: Cricket stadium filled with fans blue jerseys"></textarea>
 <script>
     const sessionId = "user_" + Math.random().toString(36).substr(2, 9)
 
+    // ===== USER NAME =====
+    let userName = localStorage.getItem("userName") || ""
+
+    function initUserName() {
+        if (!userName) {
+            const name = prompt("Welcome! What's your name?", "")
+            if (name && name.trim()) {
+                userName = name.trim()
+                localStorage.setItem("userName", userName)
+            } else {
+                userName = "Guest"
+                localStorage.setItem("userName", "Guest")
+            }
+        }
+        const header = document.querySelector(".header")
+        header.innerHTML = `🤖 Siddy AI Assistant
+            <span style="font-size:13px; font-weight:normal;
+                         background:rgba(255,255,255,0.2);
+                         padding:3px 10px; border-radius:20px; margin-left:10px;">
+                👤 ${userName}
+            </span>`
+        const welcomeMsg = document.querySelector(".message.assistant")
+        if (welcomeMsg) {
+            welcomeMsg.innerHTML = `Hello <strong>${userName}</strong>! 👋
+                I am your Siddy AI Assistant.
+                Ask me anything about math, science, coding and life problems! 🚀`
+        }
+    }
+
+    initUserName()
+
     // ===== TAB SWITCHING =====
     function switchTab(tab, el) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'))
@@ -475,42 +458,41 @@ Example: Cricket stadium filled with fans blue jerseys"></textarea>
         box.scrollTop = box.scrollHeight
     }
 
-   async function askQuestion() {
-    const input = document.getElementById("question")
-    const chatBox = document.getElementById("chat-box")
-    const question = input.value.trim()
-    if (!question) return
-    chatBox.innerHTML += `<div class="message user">${question}</div>`
-    input.value = ""
-    scrollBottom()
-    const loadingId = "load_" + Date.now()
-    chatBox.innerHTML += `<div class="message assistant" id="${loadingId}">Thinking...</div>`
-    scrollBottom()
-    try {
-        const response = await fetch("/ask-stream", {
-            method: "POST",
-            headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({question, session_id: sessionId})
-        })
-        const el = document.getElementById(loadingId)
-        let rawText = ""
-        const reader = response.body.getReader()
-        const decoder = new TextDecoder()
-        while (true) {
-            const {done, value} = await reader.read()
-            if (done) break
-            rawText += decoder.decode(value)
-            el.innerHTML = marked.parse(rawText)
-            scrollBottom()
+    async function askQuestion() {
+        const input = document.getElementById("question")
+        const chatBox = document.getElementById("chat-box")
+        const question = input.value.trim()
+        if (!question) return
+        chatBox.innerHTML += `<div class="message user">${question}</div>`
+        input.value = ""
+        scrollBottom()
+        const loadingId = "load_" + Date.now()
+        chatBox.innerHTML += `<div class="message assistant" id="${loadingId}">Thinking...</div>`
+        scrollBottom()
+        try {
+            const response = await fetch("/ask-stream", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({question, session_id: sessionId})
+            })
+            const el = document.getElementById(loadingId)
+            let rawText = ""
+            const reader = response.body.getReader()
+            const decoder = new TextDecoder()
+            while (true) {
+                const {done, value} = await reader.read()
+                if (done) break
+                rawText += decoder.decode(value)
+                el.innerHTML = marked.parse(rawText)
+                scrollBottom()
+            }
+            const selectedLang = document.getElementById("langSelector")?.value || "en-IN"
+            speakText(rawText, selectedLang)
+            await updateRemainingCount()
+        } catch (e) {
+            document.getElementById(loadingId).textContent = "Sorry, something went wrong."
         }
-         // ✅ Auto speak the response in selected language
-        const selectedLang = document.getElementById("langSelector")?.value || "en-IN"
-        speakText(rawText, selectedLang)
-        await updateRemainingCount()  // ✅ update counter after each question
-    } catch (e) {
-        document.getElementById(loadingId).textContent = "Sorry, something went wrong."
     }
-}
 
     async function clearHistory() {
         await fetch("/clear", {
@@ -540,26 +522,19 @@ Example: Cricket stadium filled with fans blue jerseys"></textarea>
     }
 
     async function analyzeImage() {
-        // Check both camera and gallery inputs
         const cameraInput = document.getElementById("cameraInput")
         const galleryInput = document.getElementById("galleryInput")
         const question = document.getElementById("imageQuestion").value
             || "What is in this image? Describe in detail with bullet points."
-
-        // Use whichever has a file selected
         const selectedFile = cameraInput.files[0] || galleryInput.files[0]
-
         if (!selectedFile) {
             alert("Please take a photo or choose from gallery first!")
             return
         }
-
         document.getElementById("analyze-loading").style.display = "block"
         document.getElementById("analyze-result").style.display = "none"
-
         const formData = new FormData()
         formData.append("file", selectedFile)
-
         try {
             const response = await fetch(
                 `/analyze-image?question=${encodeURIComponent(question)}`,
@@ -673,59 +648,49 @@ Example: Cricket stadium filled with fans blue jerseys"></textarea>
     // ===== CELEBRITY =====
     const defaultCelebs = ["Rohit Sharma", "Virat Kohli", "MS Dhoni",
         "Sachin Tendulkar", "Hardik Pandya", "Jasprit Bumrah"]
-    // ✅ Error 3 fixed — declare FIRST before all functions
-let currentCategory = ""
+    let currentCategory = ""
 
-async function loadDefaultCelebs() {
-    currentCategory = "cricket"
-    document.getElementById("celeb-loading").style.display = "block"
-    document.getElementById("celeb-grid").innerHTML = ""
-    for (const name of defaultCelebs) {           // ✅ Error 1 fixed — curly braces
-        if (currentCategory !== "cricket") break
-        await fetchAndRenderCeleb(name, "cricket")
-    }
-    document.getElementById("celeb-loading").style.display = "none"
-}
-
-async function loadCategory(el, category) {
-    document.querySelectorAll('.celeb-cat').forEach(b => b.classList.remove('active'))
-    el.classList.add('active')
-    currentCategory = category
-
-    const categories = {
-        'cricket': ["Rohit Sharma","Virat Kohli","MS Dhoni","Sachin Tendulkar","Hardik Pandya","Jasprit Bumrah"],
-        'bollywood': ["Shah Rukh Khan","Salman Khan","Amitabh Bachchan","Deepika Padukone","Priyanka Chopra","Aamir Khan"],
-        'politics India': ["Narendra Modi","Rahul Gandhi","Amit Shah","Arvind Kejriwal","Mamata Banerjee","Yogi Adityanath"],
-        'football player': ["Lionel Messi","Cristiano Ronaldo","Neymar","Kylian Mbappe","Erling Haaland","Mohamed Salah"],
-        'technology CEO': ["Elon Musk","Sundar Pichai","Satya Nadella","Sam Altman","Jeff Bezos","Mark Zuckerberg"],
-        'scientist': ["Albert Einstein","Isaac Newton","Stephen Hawking","Marie Curie","APJ Abdul Kalam","Nikola Tesla"]
-    }
-
-    const names = categories[category] || []
-    document.getElementById("celeb-loading").style.display = "block"
-    document.getElementById("celeb-grid").innerHTML = ""
-    document.getElementById("celeb-no-result").style.display = "none"
-
-    for (const name of names) {                   // ✅ Error 2 fixed — curly braces
-        if (currentCategory !== category) break
-        await fetchAndRenderCeleb(name, category)
-    }
-
-    document.getElementById("celeb-loading").style.display = "none"
-}
-
-// ✅ Error 4 fixed — added category parameter
-async function fetchAndRenderCeleb(name, category) {
-    try {
-        const response = await fetch(`/celebrity-photo/${encodeURIComponent(name)}`)
-        const data = await response.json()
-        if (data.photo && currentCategory === category) {
-            renderCelebCard(data)
+    async function loadDefaultCelebs() {
+        currentCategory = "cricket"
+        document.getElementById("celeb-loading").style.display = "block"
+        document.getElementById("celeb-grid").innerHTML = ""
+        for (const name of defaultCelebs) {
+            if (currentCategory !== "cricket") break
+            await fetchAndRenderCeleb(name, "cricket")
         }
-    } catch (e) {
-        console.log("Error:", name, e)
+        document.getElementById("celeb-loading").style.display = "none"
     }
-}
+
+    async function loadCategory(el, category) {
+        document.querySelectorAll('.celeb-cat').forEach(b => b.classList.remove('active'))
+        el.classList.add('active')
+        currentCategory = category
+        const categories = {
+            'cricket': ["Rohit Sharma","Virat Kohli","MS Dhoni","Sachin Tendulkar","Hardik Pandya","Jasprit Bumrah"],
+            'bollywood': ["Shah Rukh Khan","Salman Khan","Amitabh Bachchan","Deepika Padukone","Priyanka Chopra","Aamir Khan"],
+            'politics India': ["Narendra Modi","Rahul Gandhi","Amit Shah","Arvind Kejriwal","Mamata Banerjee","Yogi Adityanath"],
+            'football player': ["Lionel Messi","Cristiano Ronaldo","Neymar","Kylian Mbappe","Erling Haaland","Mohamed Salah"],
+            'technology CEO': ["Elon Musk","Sundar Pichai","Satya Nadella","Sam Altman","Jeff Bezos","Mark Zuckerberg"],
+            'scientist': ["Albert Einstein","Isaac Newton","Stephen Hawking","Marie Curie","APJ Abdul Kalam","Nikola Tesla"]
+        }
+        const names = categories[category] || []
+        document.getElementById("celeb-loading").style.display = "block"
+        document.getElementById("celeb-grid").innerHTML = ""
+        document.getElementById("celeb-no-result").style.display = "none"
+        for (const name of names) {
+            if (currentCategory !== category) break
+            await fetchAndRenderCeleb(name, category)
+        }
+        document.getElementById("celeb-loading").style.display = "none"
+    }
+
+    async function fetchAndRenderCeleb(name, category) {
+        try {
+            const response = await fetch(`/celebrity-photo/${encodeURIComponent(name)}`)
+            const data = await response.json()
+            if (data.photo && currentCategory === category) renderCelebCard(data)
+        } catch (e) { console.log("Error:", name, e) }
+    }
 
     function renderCelebCard(data) {
         const card = document.createElement("div")
@@ -798,29 +763,26 @@ async function fetchAndRenderCeleb(name, category) {
         const cameraFile = document.getElementById("myCameraInput").files[0]
         const galleryFile = document.getElementById("myGalleryInput").files[0]
         const selectedFile = cameraFile || galleryFile
-
         if (!name) { alert("Please enter your name!"); return }
         if (name.includes("@")) { alert("Please enter your name not email!"); return }
         if (!selectedFile) { alert("Please take a photo or choose from gallery!"); return }
-
         const formData = new FormData()
         formData.append("file", selectedFile)
         formData.append("name", name)
         formData.append("description", desc || "")
-
         try {
             const response = await fetch("/upload-my-photo", {method: "POST", body: formData})
             const data = await response.json()
             const result = document.getElementById("upload-result")
             result.style.display = "block"
             if (data.success) {
-                 result.innerHTML = `✅ Photo uploaded for <strong>${name}</strong>!`
-            document.getElementById("myName").value = ""
-            document.getElementById("myDesc").value = ""
-            document.getElementById("myCameraInput").value = ""
-            document.getElementById("myGalleryInput").value = ""
-            document.getElementById("myPhotoPreview").style.display = "none"
-            await loadMyCelebs()
+                result.innerHTML = `✅ Photo uploaded for <strong>${name}</strong>!`
+                document.getElementById("myName").value = ""
+                document.getElementById("myDesc").value = ""
+                document.getElementById("myCameraInput").value = ""
+                document.getElementById("myGalleryInput").value = ""
+                document.getElementById("myPhotoPreview").style.display = "none"
+                await loadMyCelebs()
             } else {
                 result.innerHTML = `❌ Error: ${data.error}`
             }
@@ -828,413 +790,338 @@ async function fetchAndRenderCeleb(name, category) {
     }
 
     async function loadMyCelebs() {
-    try {
-        const response = await fetch("/my-celebs")
-        const data = await response.json()
-        const grid = document.getElementById("my-celebs-grid")
-        grid.innerHTML = ""
-        if (data.celebs && data.celebs.length > 0) {
-            data.celebs.forEach((celeb, index) => {
-                const card = document.createElement("div")
-                card.className = "celeb-card"
-                card.style.position = "relative"
-                card.innerHTML = `
-                    <button onclick="event.stopPropagation(); deleteMyPhoto(${index})"
-                            style="position:absolute; top:8px; right:8px;
-                                   background:#dc3545; color:white; border:none;
-                                   border-radius:50%; width:32px; height:32px;
-                                   cursor:pointer; font-size:16px; z-index:10;
-                                   line-height:32px; text-align:center;">✕</button>
-                    <img src="${celeb.photo}"
-                         style="width:100%;height:200px;object-fit:cover;object-position:top"/>
-                    <div class="celeb-card-info">
-                        <div class="celeb-card-name">${celeb.name}</div>
-                        <div class="celeb-card-desc">${celeb.description || ""}</div>
-                    </div>`
-                card.onclick = () => openModal(celeb)
-                grid.appendChild(card)
-            })
-        }
-    } catch (e) {
-        console.log("Error:", e)
+        try {
+            const response = await fetch("/my-celebs")
+            const data = await response.json()
+            const grid = document.getElementById("my-celebs-grid")
+            grid.innerHTML = ""
+            if (data.celebs && data.celebs.length > 0) {
+                data.celebs.forEach((celeb, index) => {
+                    const card = document.createElement("div")
+                    card.className = "celeb-card"
+                    card.style.position = "relative"
+                    card.innerHTML = `
+                        <button onclick="event.stopPropagation(); deleteMyPhoto(${index})"
+                                style="position:absolute; top:8px; right:8px;
+                                       background:#dc3545; color:white; border:none;
+                                       border-radius:50%; width:32px; height:32px;
+                                       cursor:pointer; font-size:16px; z-index:10;
+                                       line-height:32px; text-align:center;">✕</button>
+                        <img src="${celeb.photo}"
+                             style="width:100%;height:200px;object-fit:cover;object-position:top"/>
+                        <div class="celeb-card-info">
+                            <div class="celeb-card-name">${celeb.name}</div>
+                            <div class="celeb-card-desc">${celeb.description || ""}</div>
+                        </div>`
+                    card.onclick = () => openModal(celeb)
+                    grid.appendChild(card)
+                })
+            }
+        } catch (e) { console.log("Error:", e) }
     }
-}
 
     async function deleteMyPhoto(index) {
-    if (!confirm("Delete this photo?")) return
-    try {
-        const response = await fetch(`/my-celebs/${index}`, {
-            method: "DELETE"
-        })
-        const data = await response.json()
-        if (data.success) {
-            await loadMyCelebs()
-        } else {
-            alert("Error: " + data.error)
-        }
-    } catch (e) {
-        alert("Delete failed: " + e.message)
+        if (!confirm("Delete this photo?")) return
+        try {
+            const response = await fetch(`/my-celebs/${index}`, {method: "DELETE"})
+            const data = await response.json()
+            if (data.success) { await loadMyCelebs() }
+            else { alert("Error: " + data.error) }
+        } catch (e) { alert("Delete failed: " + e.message) }
     }
-}
 
     async function updateRemainingCount() {
-    try {
-        const r = await fetch(`/remaining/${sessionId}`)  // ✅ capital I
-        const data = await r.json()
-        const remaining = data.remaining
-        const resets = data.resets || "soon"
-
-        let counter = document.getElementById("question-counter")
-        if (!counter) {
-            counter = document.createElement("div")
-            counter.id = "question-counter"
-            counter.style.cssText = `
-                text-align:center; font-size:12px;
-                color:#666; padding:6px;
-                background:white; border-top:1px solid #eee;`
-            document.querySelector(".input-area").before(counter)
-        }
-        if (remaining <= 0) {
-            counter.style.color = "#dc3545"
-            counter.innerHTML = `⚠️ Daily limit reached (10/10 ). Come back tomorrow! Resets ${resets}`    
-            document.getElementById("question").disabled = true
-            document.querySelector(".send-btn").disabled = true
-        } else if (remaining <= 3) {
-            counter.style.color = "#ff9800"
-            counter.innerHTML = `⚠️ Only ${remaining} questions left today (resets ${resets})`
-        } else {
-            counter.style.color = "#28a745"
-            counter.innerHTML = `✅ ${remaining} of 10 daily questions remaining`
-        }
-    } catch (e) {
-        console.log("Counter error:", e)
-    }
-}
-
-updateRemainingCount()  // ✅ no template tags after this
-
-// == voice assistant
-let recognition= null
-let isListening= false
-let isSpeaking= false
-let detectedLanguage= "en-IN"
-
-const languages = [
-    "en-IN",   // English India
-    "en-US",   // English US
-    "hi-IN",   // Hindi
-    "ta-IN",   // Tamil
-    "te-IN",   // Telugu
-    "mr-IN",   // Marathi
-    "bn-IN",   // Bengali
-    "gu-IN",   // Gujarati
-    "kn-IN",   // Kannada
-    "ml-IN",   // Malayalam
-    "pa-IN",   // Punjabi
-    "ur-IN",   // Urdu
-    "es-ES",   // Spanish
-    "fr-FR",   // French
-    "de-DE",   // German
-    "ja-JP",   // Japanese
-    "zh-CN",   // Chinese
-    "ar-SA",   // Arabic
-    "ru-RU",   // Russian
-    "pt-BR",   // Portuguese
-]
-
-function initVoice() {
-    if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert("Voice not supported in the browser. Use Chrome")
-        return false
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-
-    recognition = new SpeechRecognition()
-    recognition.continuous = false
-    recognition.interimResults= true 
-    recognition.maxAlternatives = 1 
-
-    //Try to detect language automatically
-    recognition.lang = detectLanguage
-
-    recognition.onstart = () => {
-       isListning = true 
-       const btn = document.getElementById("micBtn")
-       btn.classList.add("listening")
-       btn.textContent= "🔴"
-       btn.title= "Listning...click to stop"
-       showVoiceStatus("🎤 Listening... speak now!")
-    }
-
-    recognition.onresult = (event) => {
-        let transcript = ""
-        let isFinal = false
-          
-        for (let i= event.resultIndex ; i< event.results.length; i++){
-            transcript= event.results[i][0].transcript
-            isFinal = event.results[i].isFinal
-        }
-
-        // show in input box as user speaks
-        document.getElementById("question").value = transcript
-
-        if(isFinal){
-            showVoiceStatus("✅ Got it! Processing...")
-            stopListening()
-            //Auto send after 500ms
-
-            setTimeout(() => {
-                if (transcript.trim()) {
-                    askQuestion()
-                }
-            
-            },500)
-        }
-    }
-
-    recognition.onerror = (event) => {
-        console.log("Voice error ", event.error)
-        stopListening()
-        if (event.error === "no-speech") {
-            showVoiceStatus("⚠️ No speech detected. Try again!")
-        } else if (event.error === "not-allowed") {
-            showVoiceStatus("❌ Microphone access denied!")
-        } else {
-            showVoiceStatus(`❌ Error: ${event.error}`)
-        }
-    }
-
-    recognition.onend = () => {
-        stopListening()
-    }
-    return true
-
-}
-
-function toggleVoice() {
-    // stop speaking if AI is reading
-    if (isSpeaking) {
-        window.speechSynthesis.cancel()
-        isSpeaking= false
-    }
-
-    if (isListening) {
-        stopListning()
-    } else {
-        startListning()
-    }
-}
-
-function startListning() {
-    if (!recognition) {
-        if (!initVoice()) return
-    }
-    try {
-        recognition.start()
-    } catch (e) {
-        console.log("Already started:", e)
-    }
-}
-
-function stopListening() {
-    isListening = false
-    const btn = document.getElementById("micBtn")
-    if (btn) {
-        btn.classList.remove("listening")
-        btn.textContent = "🎤"
-        btn.title = "Click to speak"
-    }
-    if (recognition) {
-        try { recognition.stop() } catch (e) {}
-    }
-}
-
-function showVoiceStatus(message) {
-    let status = document.getElementById("voice-status")
-    if (!status) {
-        status = document.createElement("div")
-        status.id = "voice-status"
-        status.style.cssText = `
-            text-align:center; font-size:13px; padding:6px;
-            background:#e3f2fd; color:#0056b3;
-            border-top:1px solid #bee5eb;
-            transition: all 0.3s;`
-        document.querySelector(".input-area").before(status)
-    }
-    status.textContent = message
-    // Auto hide after 3 seconds
-    setTimeout(() => {
-        if (status) status.textContent = ""
-    }, 3000)
-}
-
-// ===== TEXT TO SPEECH =====
-function speakText(text, lang = "en-IN") {
-    if (!window.speechSynthesis) return
-
-    // Cancel any ongoing speech
-    window.speechSynthesis.cancel()
-
-    // Clean markdown for speech
-    const cleanText = text
-        .replace(/#{1,6}\s/g, "")      // remove headers
-        .replace(/\*\*(.*?)\*\*/g, "$1") // remove bold
-        .replace(/\*(.*?)\*/g, "$1")    // remove italic
-        .replace(/`(.*?)`/g, "$1")      // remove code
-        .replace(/\[(.*?)\]\(.*?\)/g, "$1") // remove links
-        .replace(/[-*•]\s/g, "")        // remove bullets
-        .replace(/\n+/g, ". ")          // newlines to pauses
-        .trim()
-
-    const utterance = new SpeechSynthesisUtterance(cleanText)
-    utterance.lang = lang
-    utterance.rate = 0.9    // slightly slower for clarity
-    utterance.pitch = 1
-    utterance.volume = 1
-
-    utterance.onstart = () => {
-        isSpeaking = true
-        showVoiceStatus("🔊 AI is speaking... click mic to stop")
-    }
-
-    utterance.onend = () => {
-        isSpeaking = false
-        showVoiceStatus("")
-    }
-
-    utterance.onerror = (e) => {
-        isSpeaking = false
-        console.log("Speech error:", e)
-    }
-
-    window.speechSynthesis.speak(utterance)
-}
-
-// Add language selector
-function addLanguageSelector() {
-    const inputArea = document.querySelector(".input-area")
-    const selector = document.createElement("select")
-    selector.id = "langSelector"
-    selector.style.cssText = `
-        padding: 6px; border: 1px solid #ddd;
-        border-radius: 20px; font-size: 12px;
-        background: white; cursor: pointer;
-        max-width: 120px;`
-    selector.innerHTML = `
-        <option value="en-IN">🇮🇳 English</option>
-        <option value="hi-IN">🇮🇳 Hindi</option>
-        <option value="ta-IN">🇮🇳 Tamil</option>
-        <option value="te-IN">🇮🇳 Telugu</option>
-        <option value="mr-IN">🇮🇳 Marathi</option>
-        <option value="bn-IN">🇮🇳 Bengali</option>
-        <option value="gu-IN">🇮🇳 Gujarati</option>
-        <option value="kn-IN">🇮🇳 Kannada</option>
-        <option value="ml-IN">🇮🇳 Malayalam</option>
-        <option value="pa-IN">🇮🇳 Punjabi</option>
-        <option value="es-ES">🇪🇸 Spanish</option>
-        <option value="fr-FR">🇫🇷 French</option>
-        <option value="de-DE">🇩🇪 German</option>
-        <option value="ja-JP">🇯🇵 Japanese</option>
-        <option value="zh-CN">🇨🇳 Chinese</option>
-        <option value="ar-SA">🇸🇦 Arabic</option>
-    `
-    selector.onchange = () => {
-        detectedLanguage = selector.value
-        if (recognition) {
-            recognition.lang = detectedLanguage
-        }
-    }
-    inputArea.insertBefore(selector, inputArea.firstChild)
-}
-
-// Initialize on page load
-addLanguageSelector()
-
-function initVoice() {
-    if (!('webkitSpeechRecognition' in window) &&
-        !('SpeechRecognition' in window)) {
-        alert("Voice not supported. Please use Chrome browser!")
-        return false
-    }
-
-    // ✅ Request microphone permission first
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(() => {
-            console.log("Mic permission granted!")
-        })
-        .catch((err) => {
-            alert("Microphone access denied! Please allow mic in browser settings.")
-            return false
-        })
-
-    const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition
-
-    recognition = new SpeechRecognition()
-    recognition.continuous = false
-    recognition.interimResults = true
-    recognition.maxAlternatives = 1
-    recognition.lang = detectedLanguage
-
-    recognition.onstart = () => {
-        isListening = true
-        const btn = document.getElementById("micBtn")
-        btn.classList.add("listening")
-        btn.textContent = "🔴"
-        btn.title = "Listening... click to stop"
-        showVoiceStatus("🎤 Listening... speak now!")
-    }
-
-        setTimeout(() => {
-            if (isListening){
-                stopListening()
-                const val = document.getElementById("question").value.trim()
-                if (val) {
-                    showVoiceStatus("✅ Got it! Processing...")
-                    setTimeout(() => askQuestion(),300)
-                } else {
-                    showVoiceStatus("⚠️ No speech detected. Try again!")
-                }
+        try {
+            const r = await fetch(`/remaining/${sessionId}`)
+            const data = await r.json()
+            const remaining = data.remaining
+            const resets = data.resets || "soon"
+            let counter = document.getElementById("question-counter")
+            if (!counter) {
+                counter = document.createElement("div")
+                counter.id = "question-counter"
+                counter.style.cssText = `text-align:center; font-size:12px;
+                    color:#666; padding:6px; background:white; border-top:1px solid #eee;`
+                document.querySelector(".input-area").before(counter)
             }
-        },5000)
+            if (remaining <= 0) {
+                counter.style.color = "#dc3545"
+                counter.innerHTML = `⚠️ Limit reached (10/10). Resets ${resets}!`
+                document.getElementById("question").disabled = true
+                document.querySelector(".send-btn").disabled = true
+            } else if (remaining <= 3) {
+                counter.style.color = "#ff9800"
+                counter.innerHTML = `⚠️ Only ${remaining} questions left (resets ${resets})`
+            } else {
+                counter.style.color = "#28a745"
+                counter.innerHTML = `✅ ${remaining} of 10 questions remaining (per 5 hours)`
+            }
+        } catch (e) { console.log("Counter error:", e) }
+    }
 
-    recognition.onresult = (event) => {
-        let transcript = ""
-        let isFinal = false
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            transcript = event.results[i][0].transcript
-            isFinal = event.results[i].isFinal
+    updateRemainingCount()
+
+    // ===== VOICE ASSISTANT =====
+    // Error 1 fixed — only ONE initVoice function (removed duplicate)
+    // Error 2 fixed — detectLanguage → detectedLanguage
+    // Error 3 fixed — isListning → isListening
+    // Error 4 fixed — startListning → startListening, stopListning → stopListening
+    // Error 5 fixed — missing closing } for setTimeout in onstart
+    // Error 6 fixed — duplicate onresult removed
+    // Error 7 fixed — toggleVoice used wrong function names
+    // Error 8 fixed — speakText defined twice (removed old one)
+
+    let recognition = null
+    let isListening = false
+    let isSpeaking = false
+    let detectedLanguage = "en-IN"   // ✅ Error 2 fixed
+
+    // Stop words in many languages
+    const stopWords = [
+        "stop", "रुको", "बंद करो", "रुक",
+        "parar", "detener", "alto",
+        "stopp", "anhalten", "halt",
+        "arrêter", "arrêt",
+        "止まる", "停止", "停下",
+        "وقف", "توقف",
+    ]
+
+    function initVoice() {   // ✅ Error 1 fixed — only ONE initVoice
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+        const isAndroid = /Android/.test(navigator.userAgent)
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+
+        if (isIOS && isSafari) {
+            const btn = document.getElementById("micBtn")
+            btn.title = "Voice not supported on iOS Safari. Use Chrome."
+            btn.onclick = () => alert(
+                "Voice input is not supported on iOS Safari.\n" +
+                "Please type your question or use Chrome browser."
+            )
+            return false
         }
-        document.getElementById("question").value = transcript
-        if (isFinal) {
-            showVoiceStatus("✅ Got it! Processing...")
-            stopListening()
+
+        if (!('webkitSpeechRecognition' in window) &&
+            !('SpeechRecognition' in window)) {
+            alert("Voice not supported. Please use Chrome!")
+            return false
+        }
+
+        const SpeechRecognition =
+            window.SpeechRecognition || window.webkitSpeechRecognition
+
+        recognition = new SpeechRecognition()
+        recognition.continuous = false
+        recognition.interimResults = true
+        recognition.maxAlternatives = 1
+        recognition.lang = detectedLanguage
+
+        const timeout = isAndroid ? 6000 : 8000
+
+        recognition.onstart = () => {
+            isListening = true   // ✅ Error 3 fixed
+            const btn = document.getElementById("micBtn")
+            btn.classList.add("listening")
+            btn.textContent = "🔴"
+            btn.title = "Listening... say STOP to cancel"
+            showVoiceStatus("🎤 Listening... speak now! Say STOP to cancel")
+
+            // Auto stop after timeout
             setTimeout(() => {
-                if (transcript.trim()) askQuestion()
-            }, 500)
+                if (isListening) {
+                    const val = document.getElementById("question").value.trim()
+                    stopListening()   // ✅ Error 4 fixed
+                    if (val) {
+                        showVoiceStatus("✅ Processing...")
+                        setTimeout(() => askQuestion(), 300)
+                    } else {
+                        showVoiceStatus("⚠️ No speech detected. Try again!")
+                    }
+                }
+            }, timeout)
+        }   // ✅ Error 5 fixed — closing } for onstart
+
+        recognition.onresult = (event) => {   // ✅ Error 6 fixed — only ONE onresult
+            let transcript = ""
+            let isFinal = false
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                transcript = event.results[i][0].transcript
+                isFinal = event.results[i].isFinal
+            }
+
+            document.getElementById("question").value = transcript
+
+            // Stop when user says stop in any language
+            const lowerTranscript = transcript.toLowerCase().trim()
+            if (stopWords.some(word => lowerTranscript.includes(word))) {
+                showVoiceStatus("⏹️ Stopped!")
+                stopListening()
+                window.speechSynthesis.cancel()
+                document.getElementById("question").value = ""
+                return
+            }
+
+            if (isFinal) {
+                showVoiceStatus("✅ Got it! Processing...")
+                stopListening()
+                setTimeout(() => {
+                    if (transcript.trim()) askQuestion()
+                }, 500)
+            }
         }
+
+        recognition.onerror = (event) => {
+            console.log("Voice error:", event.error)
+            stopListening()
+            if (event.error === "no-speech") {
+                showVoiceStatus("⚠️ No speech detected. Try again!")
+            } else if (event.error === "not-allowed") {
+                showVoiceStatus("❌ Microphone access denied!")
+                alert("Please allow microphone:\nClick 🔒 in address bar → Allow Microphone")
+            } else {
+                showVoiceStatus(`❌ Error: ${event.error}`)
+            }
+        }
+
+        recognition.onend = () => { stopListening() }
+
+        return true
     }
 
-    recognition.onerror = (event) => {
-        console.log("Voice error:", event.error)
-        stopListening()
-        if (event.error === "no-speech") {
-            showVoiceStatus("⚠️ No speech detected. Try again!")
-        } else if (event.error === "not-allowed") {
-            showVoiceStatus("❌ Microphone access denied! Check browser settings.")
-            alert("Please allow microphone access:\nClick 🔒 in address bar → Allow Microphone")
+    function toggleVoice() {
+        if (isSpeaking) {
+            window.speechSynthesis.cancel()
+            isSpeaking = false
+        }
+        if (isListening) {
+            stopListening()     // ✅ Error 7 fixed — correct name
         } else {
-            showVoiceStatus(`❌ Error: ${event.error}`)
+            startListening()    // ✅ Error 7 fixed — correct name
         }
     }
 
-    recognition.onend = () => {
-        stopListening()
+    function startListening() {   // ✅ Error 4 fixed — correct name
+        if (!recognition) {
+            if (!initVoice()) return
+        }
+        try { recognition.start() }
+        catch (e) { console.log("Already started:", e) }
     }
 
-    return true
-}
+    function stopListening() {   // ✅ Error 4 fixed — correct name
+        isListening = false
+        const btn = document.getElementById("micBtn")
+        if (btn) {
+            btn.classList.remove("listening")
+            btn.textContent = "🎤"
+            btn.title = "Click to speak"
+        }
+        if (recognition) {
+            try { recognition.stop() } catch (e) {}
+        }
+    }
+
+    function showVoiceStatus(message) {
+        let status = document.getElementById("voice-status")
+        if (!status) {
+            status = document.createElement("div")
+            status.id = "voice-status"
+            status.style.cssText = `text-align:center; font-size:13px; padding:6px;
+                background:#e3f2fd; color:#0056b3;
+                border-top:1px solid #bee5eb; transition: all 0.3s;`
+            document.querySelector(".input-area").before(status)
+        }
+        status.textContent = message
+        setTimeout(() => { if (status) status.textContent = "" }, 3000)
+    }
+
+    // Load voices for better language support
+    function loadVoicesForLanguage(lang) {
+        return new Promise((resolve) => {
+            const voices = window.speechSynthesis.getVoices()
+            if (voices.length > 0) { resolve(voices); return }
+            window.speechSynthesis.onvoiceschanged = () => {
+                resolve(window.speechSynthesis.getVoices())
+            }
+            setTimeout(() => resolve([]), 2000)
+        })
+    }
+
+    async function speakText(text, lang = "en-IN") {   // ✅ Error 8 fixed — only ONE speakText
+        if (!window.speechSynthesis) return
+        window.speechSynthesis.cancel()
+
+        const voices = await loadVoicesForLanguage(lang)
+
+        const cleanText = text
+            .replace(/#{1,6}\s/g, "")
+            .replace(/\*\*(.*?)\*\*/g, "$1")
+            .replace(/\*(.*?)\*/g, "$1")
+            .replace(/`(.*?)`/g, "$1")
+            .replace(/\[(.*?)\]\(.*?\)/g, "$1")
+            .replace(/[-*•]\s/g, "")
+            .replace(/\n+/g, ". ")
+            .trim()
+
+        const utterance = new SpeechSynthesisUtterance(cleanText)
+        utterance.lang = lang
+
+        // Find best voice for language
+        const matchedVoice = voices.find(v =>
+            v.lang.startsWith(lang.split('-')[0])
+        )
+        if (matchedVoice) {
+            utterance.voice = matchedVoice
+            console.log(`Using voice: ${matchedVoice.name} for ${lang}`)
+        }
+
+        utterance.rate = 0.9
+        utterance.pitch = 1
+        utterance.volume = 1
+
+        utterance.onstart = () => {
+            isSpeaking = true
+            showVoiceStatus("🔊 Speaking... say STOP to stop")
+        }
+        utterance.onend = () => { isSpeaking = false; showVoiceStatus("") }
+        utterance.onerror = (e) => { isSpeaking = false; console.log("Speech error:", e) }
+
+        window.speechSynthesis.speak(utterance)
+    }
+
+    // Language selector
+    function addLanguageSelector() {
+        const inputArea = document.querySelector(".input-area")
+        const selector = document.createElement("select")
+        selector.id = "langSelector"
+        selector.style.cssText = `padding: 6px; border: 1px solid #ddd;
+            border-radius: 20px; font-size: 12px;
+            background: white; cursor: pointer; max-width: 120px;`
+        selector.innerHTML = `
+            <option value="en-IN">🇮🇳 English</option>
+            <option value="hi-IN">🇮🇳 Hindi</option>
+            <option value="ta-IN">🇮🇳 Tamil</option>
+            <option value="te-IN">🇮🇳 Telugu</option>
+            <option value="mr-IN">🇮🇳 Marathi</option>
+            <option value="bn-IN">🇮🇳 Bengali</option>
+            <option value="gu-IN">🇮🇳 Gujarati</option>
+            <option value="kn-IN">🇮🇳 Kannada</option>
+            <option value="ml-IN">🇮🇳 Malayalam</option>
+            <option value="pa-IN">🇮🇳 Punjabi</option>
+            <option value="es-ES">🇪🇸 Spanish</option>
+            <option value="fr-FR">🇫🇷 French</option>
+            <option value="de-DE">🇩🇪 German</option>
+            <option value="ja-JP">🇯🇵 Japanese</option>
+            <option value="zh-CN">🇨🇳 Chinese</option>
+            <option value="ar-SA">🇸🇦 Arabic</option>`
+        selector.onchange = () => {
+            detectedLanguage = selector.value
+            if (recognition) recognition.lang = detectedLanguage
+        }
+        inputArea.insertBefore(selector, inputArea.firstChild)
+    }
+
+    addLanguageSelector()
 </script>
 
 </body>
