@@ -30,7 +30,7 @@ blocked_ips = set()
 
 # offensive word detection
 OFFENSIVE_PATTERN = [
-    r'\b(abuse|hate|kill|threat|bomb|weapon)\b'
+    r'\b(abuse|hate|kill|threat|bomb|weapon|sex|boobs)\b'
 ]
 
 def is_offensive(text: str)-> bool:
@@ -161,7 +161,9 @@ def ask_stream(request: ChatRequest, http_request: HTTPRequest):
         return StreamingResponse(blocked(), media_type="text/plain")
 
     if is_offensive(request.question):
+        blocked_ips.add(client_ip) # block the ip
         #Auto blocked after offensive message
+        print(f"🚫 Blocked IP: {client_ip} for offensive content")
         def offensive():
             yield "⚠️ Offensive content detected. Your access has been blocked."
         return StreamingResponse(offensive(), media_type= "text/plain")
@@ -801,7 +803,7 @@ def admin_dashboard(admin_key: str = ""):
     if admin_key != os.environ.get("ADMIN_KEY", "siddy123"):
         return """<html><body style='font-family:Arial;padding:40px;text-align:center'>
             <h2>🔒 Unauthorized</h2>
-            <p>Add ?admin_key=siddy123 to the URL</p>
+            <p>Add ?admin_key=siddy123 to URL</p>
         </body></html>"""
 
     from memory import sessions
@@ -810,7 +812,6 @@ def admin_dashboard(admin_key: str = ""):
     total_visitors = len(visitors)
     total_questions = sum(v.get("questions_asked", 0) for v in visitors.values())
 
-    # Build visitor rows
     rows = ""
     sorted_visitors = sorted(
         visitors.items(),
@@ -823,31 +824,31 @@ def admin_dashboard(admin_key: str = ""):
         status = "🔴 Blocked" if is_ip_blocked else "🟢 Active"
         name = data.get("user_name", "Unknown")
         device = get_device_type(data.get("user_agent", ""))
-        block_btn = f"""
+        action_btn = f"""
             <a href='/admin/unblock/{ip}?admin_key=siddy123'
-               style='background:#28a745;color:white;padding:4px 8px;
-                      border-radius:4px;text-decoration:none;font-size:12px'>
+               style='background:#28a745;color:white;padding:5px 10px;
+                      border-radius:5px;text-decoration:none;font-size:12px'>
                ✅ Unblock
             </a>
         """ if is_ip_blocked else f"""
             <a href='/admin/block-get/{ip}?admin_key=siddy123'
-               style='background:#dc3545;color:white;padding:4px 8px;
-                      border-radius:4px;text-decoration:none;font-size:12px'>
+               style='background:#dc3545;color:white;padding:5px 10px;
+                      border-radius:5px;text-decoration:none;font-size:12px'>
                🚫 Block
             </a>
         """
 
         rows += f"""
-        <tr style="{'background:#ffe8e8' if is_ip_blocked else ''}">
-            <td style="padding:10px">{ip}</td>
-            <td style="padding:10px">{name}</td>
-            <td style="padding:10px">{device}</td>
-            <td style="padding:10px">{data['first_visit']}</td>
-            <td style="padding:10px">{data['last_visit']}</td>
-            <td style="padding:10px">{data['visit_count']}</td>
-            <td style="padding:10px">{data.get('questions_asked', 0)}</td>
-            <td style="padding:10px">{status}</td>
-            <td style="padding:10px">{block_btn}</td>
+        <tr style="background:{'#ffe8e8' if is_ip_blocked else 'white'}">
+            <td style="padding:10px;border-bottom:1px solid #ddd">{ip}</td>
+            <td style="padding:10px;border-bottom:1px solid #ddd">{name}</td>
+            <td style="padding:10px;border-bottom:1px solid #ddd">{device}</td>
+            <td style="padding:10px;border-bottom:1px solid #ddd">{data['first_visit']}</td>
+            <td style="padding:10px;border-bottom:1px solid #ddd">{data['last_visit']}</td>
+            <td style="padding:10px;border-bottom:1px solid #ddd">{data['visit_count']}</td>
+            <td style="padding:10px;border-bottom:1px solid #ddd">{data.get('questions_asked',0)}</td>
+            <td style="padding:10px;border-bottom:1px solid #ddd">{status}</td>
+            <td style="padding:10px;border-bottom:1px solid #ddd">{action_btn}</td>
         </tr>"""
 
     return f"""
@@ -855,32 +856,33 @@ def admin_dashboard(admin_key: str = ""):
     <head>
         <title>Admin Dashboard</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta http-equiv="refresh" content="30">
         <style>
             body {{ font-family: Arial, sans-serif; padding: 20px; background: #f0f2f5; }}
-            h1 {{ color: #007bff; }}
-            .stats {{ display: grid; grid-template-columns: repeat(4,1fr); gap: 15px; margin-bottom: 20px; }}
+            h1 {{ color: #007bff; margin-bottom: 20px; }}
+            .stats {{ display: grid; grid-template-columns: repeat(4,1fr);
+                      gap: 15px; margin-bottom: 25px; }}
             .stat {{ background: white; padding: 20px; border-radius: 12px;
                      box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }}
             .stat h2 {{ font-size: 36px; margin: 0; }}
-            .stat p {{ color: #666; margin: 5px 0 0; }}
+            .stat p {{ color: #666; margin: 5px 0 0; font-size: 14px; }}
             table {{ width: 100%; border-collapse: collapse; background: white;
                      border-radius: 12px; overflow: hidden;
                      box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
-            th {{ background: #007bff; color: white; padding: 12px; text-align: left; }}
-            tr:hover {{ background: #f8f9fa; }}
-            .refresh {{ background: #007bff; color: white; padding: 10px 20px;
-                        border-radius: 8px; text-decoration: none; display: inline-block;
-                        margin-bottom: 15px; }}
-            @media(max-width:600px) {{
+            th {{ background: #007bff; color: white; padding: 12px;
+                  text-align: left; font-size: 13px; }}
+            tr:hover {{ background: #f8f9fa !important; }}
+            .btn {{ padding: 6px 12px; border-radius: 6px; text-decoration: none;
+                    font-size: 12px; color: white; }}
+            @media(max-width:768px) {{
                 .stats {{ grid-template-columns: repeat(2,1fr); }}
-                table {{ font-size: 12px; }}
+                table {{ font-size: 11px; }}
+                th, td {{ padding: 6px !important; }}
             }}
         </style>
-        <meta http-equiv="refresh" content="30">
     </head>
     <body>
         <h1>🤖 Siddy AI Assistant — Admin Dashboard</h1>
-        <a class="refresh" href="/admin/dashboard?admin_key=siddy123">🔄 Refresh</a>
 
         <div class="stats">
             <div class="stat">
@@ -901,25 +903,26 @@ def admin_dashboard(admin_key: str = ""):
             </div>
         </div>
 
-        <h2>👥 Visitor Log</h2>
+        <h2 style="margin-bottom:15px">👥 Visitor Log</h2>
         <table>
             <tr>
                 <th>IP Address</th>
                 <th>Name</th>
                 <th>Device</th>
                 <th>First Visit</th>
-                <th>Last Visit</th>
+                <th>Last Active</th>
                 <th>Visits</th>
                 <th>Questions</th>
                 <th>Status</th>
                 <th>Action</th>
             </tr>
-            {rows}
+            {rows if rows else '<tr><td colspan="9" style="padding:20px;text-align:center;color:#666">No visitors yet</td></tr>'}
         </table>
         <br>
-        <p style="color:#666; font-size:12px">
-            Auto-refreshes every 30 seconds | 
-            <a href="/admin/visitors?admin_key=siddy123">View JSON</a>
+        <p style="color:#666;font-size:12px">
+            ⏰ Auto-refreshes every 30 seconds |
+            <a href="/admin/visitors?admin_key=siddy123">View JSON</a> |
+            <a href="/admin/activity?admin_key=siddy123">View Activity</a>
         </p>
     </body>
     </html>
