@@ -65,7 +65,7 @@ def track_visitor(http_request, session_id:str= "", user_name: str=""):
             "visit_count": 0,
             "question_asked": 0,
             "sessions": [],
-            "user_agent":http_request.header.get("User-Agent", "Unknown"),
+            "user_agent":http_request.headers.get("User-Agent", "Unknown"),
             "country":"",
             "blocked": False 
         }
@@ -214,7 +214,7 @@ Follow these rules:
 @app.get("/chat" , response_class= HTMLResponse)
 def chat_ui(http_request: HTTPRequest):
     track_visitor(http_request)
-    with open("templates/index.html", "r", encoding="urf-8") as f:
+    with open("templates/index.html", "r", encoding="utf-8") as f:
         return f.read()
     
 @app.get("/remaining/{session_id}")
