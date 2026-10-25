@@ -63,7 +63,7 @@ def track_visitor(http_request, session_id:str= "", user_name: str=""):
             "first_visit": now.strftime("%Y-%m-%d %H:%M:%S"),
             "last_visit": now.strftime("%Y-%m-%d %H:%M:%S"),
             "visit_count": 0,
-            "question_asked": 0,
+            "questions_asked": 0,
             "sessions": [],
             "user_agent":http_request.headers.get("User-Agent", "Unknown"),
             "country":"",
@@ -154,7 +154,7 @@ def ask_stream(request: ChatRequest, http_request: HTTPRequest):
     track_visitor(http_request, request.session_id)
 
     if client_ip in visitors:
-        visitors[client_ip]["question_asked"] +=1
+        visitors[client_ip]["questions_asked"] +=1
     if is_blocked(client_ip):
         def blocked():
             yield "❌ Your access has been blocked. Contact support."
@@ -242,11 +242,6 @@ def get_chat_history(session_id: str):
 def clear(request: ClearRequest):
     clear_history(request.session_id)
     return {"message": f"History cleared for {request.session_id}"}
-
-@app.get("/chat", response_class=HTMLResponse)
-def chat_ui():
-    with open("templates/index.html", "r", encoding="utf-8") as f:
-        return f.read()
 
 # ---- PDF Upload ----
 @app.post("/upload-pdf")
@@ -593,32 +588,6 @@ def search_wikipedia(topic: str):
         }
     return {"error": "Topic not found"}
 
-# ---- Admin Dashboard ----
-@app.get("/admin/dashboard", response_class=HTMLResponse)
-def admin_dashboard():
-    from memory import sessions
-    total_sessions = len(sessions)
-    total_messages = sum(len(v) for v in sessions.values())
-
-    return f"""
-    <html>
-    <body style="font-family:Arial;padding:20px">
-        <h1>Admin Dashboard</h1>
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:20px">
-            <div style="background:#007bff;color:white;padding:20px;border-radius:8px">
-                <h2>{total_sessions}</h2>
-                <p>Active Sessions</p>
-            </div>
-            <div style="background:#28a745;color:white;padding:20px;border-radius:8px">
-                <h2>{total_messages}</h2>
-                <p>Total Messages</p>
-            </div>
-        </div>
-        <br>
-        <a href="/history/default">View History</a>
-    </body>
-    </html>
-    """
 
 from fastapi.staticfiles import StaticFiles
 import shutil
@@ -715,7 +684,7 @@ def get_activity(admin_key: str=""):
         }
     }
 
-app.get("/admin/visitors")
+@app.get("/admin/visitors")
 def get_visitors(admin_key: str=""):
     if admin_key != os.environ.get("ADMIN_KEY", "siddy123"):
         return {"error":"Unauthorized - add ? admin+key= siddy123"}
@@ -728,8 +697,8 @@ def get_visitors(admin_key: str=""):
             "first_visit": data["first_visit"],
             "last_visit": data["last_visit"],
             "visit_count": data["visit_count"],
-            "question_asked": data["question_asked"],
-            "session": len(data["session"]),
+            "questions_asked": data["questions_asked"],
+            "sessions": len(data["sessions"]),
             "device": get_device_type(data.get("user_agent", "")),
             "blocked": ip in blocked_ips
         })
@@ -739,7 +708,7 @@ def get_visitors(admin_key: str=""):
 
     return {
         "total_visitors": len(visitor_list),
-        "total_questions":sum(v["question_asked"] for v in visitor_list),
+        "total_questions":sum(v["questions_asked"] for v in visitor_list),
         "blocked_count": len(blocked_ips),
         "visitors": visitor_list
     }
